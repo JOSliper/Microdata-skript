@@ -1,0 +1,68 @@
+require no.ssb.fdb:11 as fdb
+
+//Oppretter persondatasett for bosatte med variabel kjønn
+create-dataset persondata
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2020-01-01 as bosted
+import fdb/BEFOLKNING_KJOENN as kjønn
+generate fylke = substr(bosted,1,2)
+generate kom = substr(bosted,1,4)
+keep if fylke == '50'| fylke == '16'| fylke  == '17'
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+
+//henter alder - bruker år -1 for å sikre at aldersfordelt befolkning samsvarere med tallene i statistikkbanken 
+generate alder = 2019 - int (faarmnd/100)
+keep if alder >= 20
+keep if alder <= 65
+
+//Legger til yrkesstatus
+import fdb/REGSYS_ARB_ARBMARK_STATUS 2020-11-16 as yrkstat
+//Henter personer som tar utdanning i perioden
+create-dataset kursdata
+import-event fdb/NUDB_KURS_NUS 2020-01-01 to 2020-08-01 as kurstype
+destring kurstype, force
+
+//keep if kurstype >= 700000 & kurstype < 999999
+//Kobler på lenke mellom kurs-id og fødselsnumre
+create-dataset lenke_kurs_person
+import fdb/NUDB_KURS_FNR as fnr
+merge fnr into kursdata
+
+//Lager statistikk (collapser) over antall hendelser med høy utdanning per individ, og kobler dette på persondatasettet
+use kursdata
+collapse (count) kurstype, by(fnr)
+rename kurstype ant_kurs
+merge ant_kurs into persondata
+
+use persondata
+generate utdanning = 0
+replace utdanning = 1 if ant_kurs >= 1
+
+//lager tabell sett 1
+tabulate utdanning kjønn
+tabulate utdanning yrkstat, missing
+tabulate utdanning yrkstat kjønn, missing
+tabulate utdanning yrkstat alder, missing
+tabulate alder yrkstat, missing
+
+// begrenser til de mellom 20 og 25 år
+keep if alder <= 25
+
+//lager tabell sett 2
+tabulate utdanning yrkstat kjønn, missing
+tabulate utdanning yrkstat kom, missing
+tabulate kom yrkstat, missing
+tabulate utdanning yrkstat, missing
+
+// Legger til uføre 
+import fdb/UFOERP2011FDT_MOTTAK 2020-11-30 as ufore
+tabulate utdanning yrkstat ufore, missing
+
+// Legger til Innvandringskategori
+import fdb/BEFOLKNING_INVKAT as kat
+generate Innvandringskategori = '3'
+replace Innvandringskategori = '1' if kat == 'B'
+replace Innvandringskategori = '2' if kat == 'C'
+define-labels Innvandringskategoritxt '1' 'Innvandrere' '2' 'Norskfødt med innvandrerforeldre' '3' 'Øvrig befolkning'
+assign-labels Innvandringskategori Innvandringskategoritxt
+
+tabulate utdanning yrkstat Innvandringskategori, missing
