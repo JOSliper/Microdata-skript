@@ -254,3 +254,21 @@ replace atidint = 7 if atid > 37.50
 tabulate atidint yrkstat, missing
 tabulate atidint yrkstat, summarize(atid) missing
 
+//legger til grunnskolepoeng
+// kun personer som har karakter i minst 8 av 11 fag får grunnskolepoeng
+import fdb/NUDB_KURS_GRPOENG as Gpoeng
+generate Grunnpoeng = 0
+replace Grunnpoeng = 1 if Gpoeng > 1
+replace Grunnpoeng = 2 if Gpoeng > 10
+replace Grunnpoeng = 3 if Gpoeng > 20
+replace Grunnpoeng = 4 if Gpoeng > 30
+replace Grunnpoeng = 5 if Gpoeng > 40
+replace Grunnpoeng = 6 if Gpoeng > 50
+replace Grunnpoeng = 7 if Gpoeng > 60
+
+tabulate Grunnpoeng, missing
+tabulate Grunnpoeng, summarize(Gpoeng) missing
+tabulate alder Grunnpoeng, missing
+tabulate alder, summarize(Gpoeng) missing
+tabulate yrkstat, summarize(Gpoeng) missing
+tabulate yrkstat Grunnpoeng, missing
