@@ -1,0 +1,40 @@
+require no.ssb.fdb:11 as db
+create-dataset innv
+import db/BEFOLKNING_KOMMNR_FORMELL 2021-01-01 as bosted
+generate fylke = substr(bosted,1,2)
+keep if fylke == '50'
+
+import db/BEFOLKNING_INVKAT as kat
+generate Innvandringskategori = '3'
+replace Innvandringskategori = '1' if kat == 'B'
+replace Innvandringskategori = '2' if kat == 'C'
+define-labels Innvandringskategoritxt '1' 'Innvandrere' '2' 'Norskfødt med innvandrerforeldre' '3' 'Øvrig befolkning'
+assign-labels Innvandringskategori Innvandringskategoritxt
+
+import db/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+generate alder21 = 2021 - int (faarmnd/100)
+keep if alder21 > 19
+keep if alder21 < 67
+
+//tabulate alder21 Innvandringskategori
+
+import db/REGSYS_ARB_ARBMARK_STATUS 2020-11-16 as yrkstat_nov_20
+
+import db/NUDB_BU 2020-07-31 as utd
+generate utd19 = substr(utd,1,1)
+generate utdniva19 = '9'
+//replace utdniva19 = '0' if utd19 == '0'
+replace utdniva19 = '1' if utd19 == '1' | utd19 == '2'
+replace utdniva19 = '2' if utd19 == '3' | utd19 == '4' | utd19 == '5'
+replace utdniva19 = '3' if utd19 == '6'
+replace utdniva19 = '4' if utd19 == '7' | utd19 == '8'
+define-labels utdniva19txt '0' 'Ingen utdanning' '1' 'Grunnskolenivå' '2'  'Videregående grunnopplæring' '3' 'Universitets og høgskolenivå kort' '4' 'Universitets og høgskolenivå lang' '9' 'Uoppgitt el ingen utdanning'
+assign-labels utdniva19 utdniva19txt
+
+//tabulate fylke utdniva19 Innvandringskategori , missing
+//tabulate fylke utdniva19 Innvandringskategori , missing rowpct
+//tabulate fylke yrkstat_nov_20 Innvandringskategori , missing
+//tabulate fylke yrkstat_nov_20 Innvandringskategori , missing rowpct
+//tabulate fylke yrkstat_nov_20 Innvandringskategori utdniva19, missing
+//tabulate fylke yrkstat_nov_20 Innvandringskategori utdniva19, missing rowpct
+tabulate Innvandringskategori yrkstat_nov_20 utdniva19, missing
