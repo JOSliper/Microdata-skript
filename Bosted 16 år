@@ -1,0 +1,39 @@
+require no.ssb.fdb:10 as fdb
+create-dataset Bosted
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2021-01-01 as bosted
+
+import fdb/BEFOLKNING_KOMMNR_FAKTISK 2021-01-01 as bostedf
+
+import fdb/NUDB_KOMM_16 as aar16
+generate aar16kom = substr(aar16,1,4)
+//keep if aar16kom == '1601' | aar16kom  == '1662'
+
+generate fylke = substr(bosted,1,2)
+generate kom = substr(bosted,1,4)
+keep if fylke == '50'
+keep if kom == '5001'
+
+generate fylke2 = substr(aar16,1,2)
+
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+// 2020 og ikke 2021 for å sikre at aldersfordelt befolkning samsvarere med 2021 tallene i statistikkbanken 
+generate alder = 2020 - int (faarmnd/100)
+
+keep if alder >= 20 
+keep if alder <= 60
+
+
+import fdb/BEFOLKNING_INVKAT as kat
+generate Innvandringskategori = '3'
+replace Innvandringskategori = '1' if kat == 'B'
+replace Innvandringskategori = '2' if kat == 'C'
+define-labels Innvandringskategoritxt '1' 'Innvandrere' '2' 'Norskfødt med innvandrerforeldre' '3' 'Øvrig befolkning'
+assign-labels Innvandringskategori Innvandringskategoritxt
+
+//tabulate aar16 Innvandringskategori,colpct missing 
+tabulate aar16 Innvandringskategori, missing 
+tabulate aar16 , missing 
+//tabulate  fylke2 , missing
+tabulate alder fylke2 , missing
+//tabulate kom fylke2 , missing
+//tabulate kom fylke2 , rowpct missing
