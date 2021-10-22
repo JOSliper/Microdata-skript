@@ -1,0 +1,252 @@
+require no.ssb.fdb:11 as fdb
+
+//Oppretter persondatasett for bosatte med variabel kjønn
+create-dataset persondata
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2021-01-01 as bosted
+import fdb/BEFOLKNING_KJOENN as kjønn
+generate fylke = substr(bosted,1,2)
+generate kommnr = substr(bosted,1,4)
+keep if fylke == '50'| fylke == '16'| fylke  == '17'
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+
+//henter alder - bruker år -1 for å sikre at aldersfordelt befolkning samsvarere med tallene i statistikkbanken 
+generate alder = 2020 - int (faarmnd/100)
+keep if alder >= 19
+keep if alder <= 60
+
+//ArbeidsregionAksen-kyst-innland
+generate RegionAkseKystInnland = 99
+replace RegionAkseKystInnland = 'Aksen' if kommnr == '5001'
+replace RegionAkseKystInnland = 'Aksen' if kommnr == '5006'
+replace RegionAkseKystInnland = 'Kyst' if kommnr == '5007'
+replace RegionAkseKystInnland = 'Kyst' if kommnr == '5014'
+replace RegionAkseKystInnland = 'Kyst' if kommnr == '5020'
+replace RegionAkseKystInnland = 'Innland' if kommnr == '5021'
+replace RegionAkseKystInnland = 'Innland' if kommnr == '5022'
+replace RegionAkseKystInnland = 'Innland' if kommnr == '5025'
+replace RegionAkseKystInnland = 'Innland' if kommnr == '5026'
+replace RegionAkseKystInnland = 'Aksen' if kommnr == '5027'
+replace RegionAkseKystInnland = 'Aksen' if kommnr == '5028'
+replace RegionAkseKystInnland = 'Aksen' if kommnr == '5029'
+replace RegionAkseKystInnland = 'Aksen' if kommnr == '5031'
+replace RegionAkseKystInnland = 'Innland' if kommnr == '5032'
+replace RegionAkseKystInnland = 'Innland' if kommnr == '5033'
+replace RegionAkseKystInnland = 'Innland' if kommnr == '5034'
+replace RegionAkseKystInnland = 'Aksen' if kommnr == '5035'
+replace RegionAkseKystInnland = 'Aksen' if kommnr == '5036'
+replace RegionAkseKystInnland = 'Aksen' if kommnr == '5037'
+replace RegionAkseKystInnland = 'Aksen' if kommnr == '5038'
+replace RegionAkseKystInnland = 'Innland' if kommnr == '5041'
+replace RegionAkseKystInnland = 'Innland' if kommnr == '5042'
+replace RegionAkseKystInnland = 'Innland' if kommnr == '5043'
+replace RegionAkseKystInnland = 'Innland' if kommnr == '5044'
+replace RegionAkseKystInnland = 'Innland' if kommnr == '5045'
+replace RegionAkseKystInnland = 'Innland' if kommnr == '5046'
+replace RegionAkseKystInnland = 'Innland' if kommnr == '5047'
+replace RegionAkseKystInnland = 'Kyst' if kommnr == '5049'
+replace RegionAkseKystInnland = 'Kyst' if kommnr == '5052'
+replace RegionAkseKystInnland = 'Aksen' if kommnr == '5053'
+replace RegionAkseKystInnland = 'Kyst' if kommnr == '5054'
+replace RegionAkseKystInnland = 'Kyst' if kommnr == '5055'
+replace RegionAkseKystInnland = 'Kyst' if kommnr == '5056'
+replace RegionAkseKystInnland = 'Kyst' if kommnr == '5057'
+replace RegionAkseKystInnland = 'Kyst' if kommnr == '5058'
+replace RegionAkseKystInnland = 'Aksen' if kommnr == '5059'
+replace RegionAkseKystInnland = 'Kyst' if kommnr == '5060'
+replace RegionAkseKystInnland = 'Innland' if kommnr == '5061'
+
+//Regioner Regionråd uten overlapp
+generate Regionråd_uOverlapp = 99
+replace Regionråd_uOverlapp = 'Trondheim' if kommnr == '5001'
+replace Regionråd_uOverlapp = 'Innherredsbyen' if kommnr == '5006'
+replace Regionråd_uOverlapp = 'Namdalen' if kommnr == '5007'
+replace Regionråd_uOverlapp = 'Orkdalsregionen' if kommnr == '5014'
+replace Regionråd_uOverlapp = 'Fosen' if kommnr == '5020'
+replace Regionråd_uOverlapp = 'Trøndelag sør' if kommnr == '5021'
+replace Regionråd_uOverlapp = 'Trøndelag sør' if kommnr == '5022'
+replace Regionråd_uOverlapp = 'Trøndelag sør' if kommnr == '5025'
+replace Regionråd_uOverlapp = 'Trøndelag sør' if kommnr == '5026'
+replace Regionråd_uOverlapp = 'Trøndelag sør' if kommnr == '5027'
+replace Regionråd_uOverlapp = 'Trøndelag sør' if kommnr == '5028'
+replace Regionråd_uOverlapp = 'Orkdalsregionen' if kommnr == '5029'
+replace Regionråd_uOverlapp = 'Værnesregionen' if kommnr == '5031'
+replace Regionråd_uOverlapp = 'Værnesregionen' if kommnr == '5032'
+replace Regionråd_uOverlapp = 'Værnesregionen' if kommnr == '5033'
+replace Regionråd_uOverlapp = 'Værnesregionen' if kommnr == '5034'
+replace Regionråd_uOverlapp = 'Værnesregionen' if kommnr == '5035'
+replace Regionråd_uOverlapp = 'Innherredsbyen' if kommnr == '5036'
+replace Regionråd_uOverlapp = 'Innherredsbyen' if kommnr == '5037'
+replace Regionråd_uOverlapp = 'Innherredsbyen' if kommnr == '5038'
+replace Regionråd_uOverlapp = 'Innherredsbyen' if kommnr == '5041'
+replace Regionråd_uOverlapp = 'Namdalen' if kommnr == '5042'
+replace Regionråd_uOverlapp = 'Namdalen' if kommnr == '5043'
+replace Regionråd_uOverlapp = 'Namdalen' if kommnr == '5044'
+replace Regionråd_uOverlapp = 'Namdalen' if kommnr == '5045'
+replace Regionråd_uOverlapp = 'Namdalen' if kommnr == '5046'
+replace Regionråd_uOverlapp = 'Namdalen' if kommnr == '5047'
+replace Regionråd_uOverlapp = 'Namdalen' if kommnr == '5049'
+replace Regionråd_uOverlapp = 'Namdalen' if kommnr == '5052'
+replace Regionråd_uOverlapp = 'Innherredsbyen' if kommnr == '5053'
+replace Regionråd_uOverlapp = 'Fosen' if kommnr == '5054'
+replace Regionråd_uOverlapp = 'Orkdalsregionen' if kommnr == '5055'
+replace Regionråd_uOverlapp = 'Orkdalsregionen' if kommnr == '5056'
+replace Regionråd_uOverlapp = 'Fosen' if kommnr == '5057'
+replace Regionråd_uOverlapp = 'Fosen' if kommnr == '5058'
+replace Regionråd_uOverlapp = 'Orkdalsregionen' if kommnr == '5059'
+replace Regionråd_uOverlapp = 'Namdalen' if kommnr == '5060'
+replace Regionråd_uOverlapp = 'Orkdalsregionen' if kommnr == '5061'
+
+//Regioner Nav markedsregioner
+generate NAVregioner = 99
+replace NAVregioner = 'Trondheim' if kommnr == '5001'
+replace NAVregioner = 'Innherred og Inn-Trøndelag' if kommnr == '5006'
+replace NAVregioner = 'Namdalen' if kommnr == '5007'
+replace NAVregioner = 'Orkladalen og kysten' if kommnr == '5014'
+replace NAVregioner = 'Fosen' if kommnr == '5020'
+replace NAVregioner = 'Innlandet' if kommnr == '5021'
+replace NAVregioner = 'Innlandet' if kommnr == '5022'
+replace NAVregioner = 'Innlandet' if kommnr == '5025'
+replace NAVregioner = 'Innlandet' if kommnr == '5026'
+replace NAVregioner = 'Innlandet' if kommnr == '5027'
+replace NAVregioner = 'Innlandet' if kommnr == '5028'
+replace NAVregioner = 'Innlandet' if kommnr == '5029'
+replace NAVregioner = 'Værnesregionen og Malvik' if kommnr == '5031'
+replace NAVregioner = 'Værnesregionen og Malvik' if kommnr == '5032'
+replace NAVregioner = 'Værnesregionen og Malvik' if kommnr == '5033'
+replace NAVregioner = 'Værnesregionen og Malvik' if kommnr == '5034'
+replace NAVregioner = 'Værnesregionen og Malvik' if kommnr == '5035'
+replace NAVregioner = 'Værnesregionen og Malvik' if kommnr == '5036'
+replace NAVregioner = 'Innherred og Inn-Trøndelag' if kommnr == '5037'
+replace NAVregioner = 'Innherred og Inn-Trøndelag' if kommnr == '5038'
+replace NAVregioner = 'Innherred og Inn-Trøndelag' if kommnr == '5041'
+replace NAVregioner = 'Namdalen' if kommnr == '5042'
+replace NAVregioner = 'Namdalen' if kommnr == '5043'
+replace NAVregioner = 'Namdalen' if kommnr == '5044'
+replace NAVregioner = 'Namdalen' if kommnr == '5045'
+replace NAVregioner = 'Namdalen' if kommnr == '5046'
+replace NAVregioner = 'Namdalen' if kommnr == '5047'
+replace NAVregioner = 'Namdalen' if kommnr == '5049'
+replace NAVregioner = 'Namdalen' if kommnr == '5052'
+replace NAVregioner = 'Innherred og Inn-Trøndelag' if kommnr == '5053'
+replace NAVregioner = 'Fosen' if kommnr == '5054'
+replace NAVregioner = 'Orkladalen og kysten' if kommnr == '5055'
+replace NAVregioner = 'Orkladalen og kysten' if kommnr == '5056'
+replace NAVregioner = 'Fosen' if kommnr == '5057'
+replace NAVregioner = 'Fosen' if kommnr == '5058'
+replace NAVregioner = 'Orkladalen og kysten' if kommnr == '5059'
+replace NAVregioner = 'Namdalen' if kommnr == '5060'
+replace NAVregioner = 'Orkladalen og kysten' if kommnr == '5061'
+
+
+//legger til utdanningsnivå
+import fdb/NUDB_BU 2020-08-31 as utd
+generate utd1 = substr(utd,1,1)
+//lager kategorier
+generate utdniv = '9'
+replace utdniv = '0' if utd1 == '0'
+replace utdniv = '1' if utd1 == '1' | utd1 == '2'
+replace utdniv = '2' if utd1 == '3' | utd1 == '4' | utd1 == '5'
+replace utdniv = '3' if utd1 == '6'
+replace utdniv = '4' if utd1 == '7' | utd1 == '8'
+define-labels utdnivtxt '0' 'Ingen utdanning' '1' 'Grunnskolenivå' '2'  'Videregående grunnopplæring' '3' 'Universitets og høgskolenivå kort' '4' 'Universitets og høgskolenivå lang' '9' 'Uoppgitt el ingen utdanning'
+assign-labels utdniv utdnivtxt
+
+//tabell fordelt på 1 årig alder 
+tabulate alder utdniv, missing
+
+//kommune tabeller
+tabulate kommnr utdniv, missing
+
+//tabeller på ulike region inndelinger
+tabulate NAVregioner utdniv, missing
+tabulate Regionråd_uOverlapp utdniv, missing
+tabulate RegionAkseKystInnland utdniv, missing
+
+// fillterer ut de med grunnskole
+//keep if utdniv =='1'
+
+//Legger til yrkesstatus
+import fdb/REGSYS_ARB_ARBMARK_STATUS 2020-11-16 as yrkstat
+tabulate utdniv yrkstat, missing
+
+// Legger til uføre 
+import fdb/UFOERP2011FDT_MOTTAK 2020-11-30 as ufore
+tabulate utdniv ufore, missing
+
+// Legger til Innvandringskategori
+import fdb/BEFOLKNING_INVKAT as kat
+generate Innvandringskategori = '3'
+replace Innvandringskategori = '1' if kat == 'B'
+replace Innvandringskategori = '2' if kat == 'C'
+define-labels Innvandringskategoritxt '1' 'Innvandrere' '2' 'Norskfødt med innvandrerforeldre' '3' 'Øvrig befolkning'
+assign-labels Innvandringskategori Innvandringskategoritxt
+
+tabulate utdniv Innvandringskategori, missing
+
+
+// Legger til fødeland
+import fdb/BEFOLKNING_FODELAND as fødeland
+//Oppretter kopi av fødelandsvariabel for å kunne kontrollere omkodingen
+clone-variables fødeland -> fødeland_orig
+
+//Omkoder fødeland til verdensregion - bruker først destring for å gjøre formatet om til numerisk (kreves ved recode)
+destring fødeland
+recode fødeland (111 120 138 139 140 148 155 156 159/164 = 2) (101/141 144/158 = 1) (203/393 = 3) (143 404/578 = 4) (612 684 = 5) (601/775 = 6) (802/840 = 7) (980 = 8) (990 = 9)
+
+define-labels vregion 0 'Norge' 1 'EU/EØS' 2 'Europeiske land utenom EU' 3 'Afrika' 4 'Asia med Tyrkia' 5 'Nord-Amerika' 6 'Sør- og Mellom-Amerika' 7 'Oseania' 8 'Statsløse' 9 'Uoppgitt'
+assign-labels fødeland vregion
+
+// tester
+tabulate fødeland
+tabulate fødeland_orig fødeland
+
+// fødeland og utdanningsnivå
+tabulate  utdniv fødeland, missing 
+
+//legger til yrke
+import fdb/REGSYS_ARB_YRKE_STYRK08 2020-11-16 as yrke
+generate yrke2 = substr(yrke,1,2)
+generate yrke3 = substr(yrke,1,3)
+generate yrke1 = substr(yrke,1,1)
+
+tabulate yrke utdniv, missing
+
+// fillterer ut de med grunnskole
+keep if utdniv =='1'
+
+
+//henter arbeidstid
+import fdb/REGSYS_ARB_ARBEIDSTID 2020-11-16 as atid
+summarize atid
+histogram atid
+
+//Lager prosentiler og tester inndelingen vha statistikk
+generate atidprosentil = quantile(atid, 100)
+histogram atidprosentil, discrete
+
+//Lager kvartiler og tester inndelingen vha statistikk
+generate atidkvartil = quantile(atid, 4)
+histogram atidkvartil, discrete
+
+//Tester inndelingen i prosentiler og kvartiler opp mot hverandre
+tabulate atidprosentil atidkvartil
+
+//Lager desiler og viser hhv. antall, gjennomsnittsarbeidstid og grenseverdi for hver desil
+generate atiddesil = quantile(atid, 10)
+tabulate atiddesil, missing
+tabulate atiddesil, summarize(atid)
+//tabulate atiddesil, summarize(atid) min
+
+//Gruppere atid i  intervaller
+generate atidint = 0
+replace atidint = 1 if atid > 0
+replace atidint = 2 if atid > 15
+replace atidint = 3 if atid > 20
+replace atidint = 4 if atid > 25
+replace atidint = 5 if atid > 30
+replace atidint = 6 if atid > 35
+replace atidint = 7 if atid > 37.50
+
+
+tabulate atidint yrkstat, missing
+tabulate atidint yrkstat, summarize(atid) missing
