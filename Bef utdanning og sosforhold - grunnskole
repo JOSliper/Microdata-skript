@@ -214,6 +214,9 @@ tabulate yrke utdniv, missing
 // fillterer ut de med grunnskole
 keep if utdniv =='1'
 
+//henter noen data for de med kun grunnskole på navregioner
+tabulate NAVregioner yrkstat, missing
+tabulate NAVregioner Innvandringskategori, missing
 
 //henter arbeidstid
 import fdb/REGSYS_ARB_ARBEIDSTID 2020-11-16 as atid
@@ -250,3 +253,4 @@ replace atidint = 7 if atid > 37.50
 
 tabulate atidint yrkstat, missing
 tabulate atidint yrkstat, summarize(atid) missing
+
