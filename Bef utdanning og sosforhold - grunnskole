@@ -163,16 +163,23 @@ tabulate NAVregioner utdniv, missing
 tabulate Regionråd_uOverlapp utdniv, missing
 tabulate RegionAkseKystInnland utdniv, missing
 
+tabulate NAVregioner utdniv, missing rowpct
+tabulate Regionråd_uOverlapp utdniv, missing rowpct
+tabulate RegionAkseKystInnland utdniv, missing rowpct
+
 // fillterer ut de med grunnskole
 //keep if utdniv =='1'
 
 //Legger til yrkesstatus
 import fdb/REGSYS_ARB_ARBMARK_STATUS 2020-11-16 as yrkstat
 tabulate utdniv yrkstat, missing
+tabulate utdniv yrkstat, missing rowpct
+
 
 // Legger til uføre 
 import fdb/UFOERP2011FDT_MOTTAK 2020-11-30 as ufore
 tabulate utdniv ufore, missing
+tabulate utdniv ufore, missing rowpct
 
 // Legger til Innvandringskategori
 import fdb/BEFOLKNING_INVKAT as kat
@@ -183,7 +190,8 @@ define-labels Innvandringskategoritxt '1' 'Innvandrere' '2' 'Norskfødt med innv
 assign-labels Innvandringskategori Innvandringskategoritxt
 
 tabulate utdniv Innvandringskategori, missing
-
+tabulate utdniv Innvandringskategori, missing rowpct
+tabulate utdniv Innvandringskategori, missing colpct
 
 // Legger til fødeland
 import fdb/BEFOLKNING_FODELAND as fødeland
