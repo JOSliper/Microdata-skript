@@ -156,6 +156,7 @@ tabulate alder utdniv, missing
 
 //kommune tabeller
 tabulate kommnr utdniv, missing
+tabulate kommnr utdniv, missing rowpct
 
 //tabeller på ulike region inndelinger
 tabulate NAVregioner utdniv, missing
@@ -270,5 +271,5 @@ tabulate Grunnpoeng, missing
 tabulate Grunnpoeng, summarize(Gpoeng) missing
 tabulate alder Grunnpoeng, missing
 tabulate alder, summarize(Gpoeng) missing
-tabulate yrkstat, summarize(Gpoeng) missing
+tabulate yrkstat utdniv, summarize(Gpoeng) missing
 tabulate yrkstat Grunnpoeng, missing
