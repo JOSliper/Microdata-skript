@@ -155,8 +155,8 @@ assign-labels utdniv utdnivtxt
 tabulate alder utdniv, missing
 
 //kommune tabeller
-tabulate kommnr utdniv, missing
-tabulate kommnr utdniv, missing rowpct
+tabulate bosted utdniv, missing
+tabulate bosted utdniv, missing rowpct
 
 //tabeller på ulike region inndelinger
 tabulate NAVregioner utdniv, missing
@@ -180,6 +180,7 @@ tabulate utdniv yrkstat, missing rowpct
 import fdb/UFOERP2011FDT_MOTTAK 2020-11-30 as ufore
 tabulate utdniv ufore, missing
 tabulate utdniv ufore, missing rowpct
+tabulate utdniv ufore, missing colpct
 
 // Legger til Innvandringskategori
 import fdb/BEFOLKNING_INVKAT as kat
@@ -195,6 +196,9 @@ tabulate utdniv Innvandringskategori, missing colpct
 
 // Legger til fødeland
 import fdb/BEFOLKNING_FODELAND as fødeland
+tabulate fødeland utdniv, missing 
+tabulate fødeland utdniv, missing rowpct
+
 //Oppretter kopi av fødelandsvariabel for å kunne kontrollere omkodingen
 clone-variables fødeland -> fødeland_orig
 
@@ -211,6 +215,8 @@ tabulate fødeland_orig fødeland
 
 // fødeland og utdanningsnivå
 tabulate  utdniv fødeland, missing 
+tabulate  utdniv fødeland, missing rowpct
+tabulate  utdniv fødeland, missing colpct
 
 //legger til yrke
 import fdb/REGSYS_ARB_YRKE_STYRK08 2020-11-16 as yrke
@@ -225,7 +231,9 @@ keep if utdniv =='1'
 
 //henter noen data for de med kun grunnskole på navregioner
 tabulate NAVregioner yrkstat, missing
+tabulate NAVregioner yrkstat, missing rowpct
 tabulate NAVregioner Innvandringskategori, missing
+tabulate NAVregioner Innvandringskategori, missing rowpct
 
 //henter arbeidstid
 import fdb/REGSYS_ARB_ARBEIDSTID 2020-11-16 as atid
