@@ -167,14 +167,16 @@ tabulate NAVregioner utdniv, missing rowpct
 tabulate Regionråd_uOverlapp utdniv, missing rowpct
 tabulate RegionAkseKystInnland utdniv, missing rowpct
 
-// fillterer ut de med grunnskole
-//keep if utdniv =='1'
+// Legger til tettbygg spredtbygd 
+import fdb/BEFOLKNING_TS_KODE 2020-01-01 as tettsted
+tabulate utdniv tettsted, missing
+tabulate utdniv tettsted, missing rowpct
+tabulate utdniv tettsted, missing colpct
 
 //Legger til yrkesstatus
 import fdb/REGSYS_ARB_ARBMARK_STATUS 2020-11-16 as yrkstat
 tabulate utdniv yrkstat, missing
 tabulate utdniv yrkstat, missing rowpct
-
 
 // Legger til uføre 
 import fdb/UFOERP2011FDT_MOTTAK 2020-11-30 as ufore
@@ -226,8 +228,12 @@ generate yrke1 = substr(yrke,1,1)
 
 tabulate yrke utdniv, missing
 
-// fillterer ut de med grunnskole
+tabulate alder utdniv, missing
+tabulate alder utdniv, missing rowpct
+
+// fillterer ut de med grunnskole - SLÅS AV OG PÅ ETTER BEHOV
 keep if utdniv =='1'
+tabulate alder kjønn, missing
 
 //henter noen data for de med kun grunnskole på navregioner
 tabulate NAVregioner yrkstat, missing
@@ -237,8 +243,9 @@ tabulate NAVregioner Innvandringskategori, missing rowpct
 
 //henter arbeidstid
 import fdb/REGSYS_ARB_ARBEIDSTID 2020-11-16 as atid
-summarize atid
+summarize atid  
 histogram atid
+tabulate utdniv Innvandringskategori, summarize(atid)
 
 //Lager prosentiler og tester inndelingen vha statistikk
 generate atidprosentil = quantile(atid, 100)
@@ -253,7 +260,8 @@ tabulate atidprosentil atidkvartil
 
 //Lager desiler og viser hhv. antall, gjennomsnittsarbeidstid og grenseverdi for hver desil
 generate atiddesil = quantile(atid, 10)
-tabulate atiddesil, missing
+tabulate atiddesil utdniv
+tabulate atiddesil utdniv, colpct
 tabulate atiddesil, summarize(atid)
 //tabulate atiddesil, summarize(atid) min
 
@@ -269,6 +277,7 @@ replace atidint = 7 if atid > 37.50
 
 
 tabulate atidint yrkstat, missing
+tabulate atidint yrkstat, colpct
 tabulate atidint yrkstat, summarize(atid) missing
 
 //legger til grunnskolepoeng
