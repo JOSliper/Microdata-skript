@@ -178,6 +178,33 @@ import fdb/REGSYS_ARB_ARBMARK_STATUS 2020-11-16 as yrkstat
 tabulate utdniv yrkstat, missing
 tabulate utdniv yrkstat, missing rowpct
 
+//Henter personer som tar utdanning i perioden
+create-dataset kursdata
+import-event fdb/NUDB_KURS_NUS 2020-01-01 to 2020-08-01 as kurstype
+destring kurstype, force
+
+//keep if kurstype >= 700000 & kurstype < 999999
+//Kobler på lenke mellom kurs-id og fødselsnumre
+create-dataset lenke_kurs_person
+import fdb/NUDB_KURS_FNR as fnr
+merge fnr into kursdata
+
+//Lager statistikk (collapser) over antall hendelser med kurs/utdanning per individ, og kobler dette på persondatasettet
+use kursdata
+collapse (count) kurstype, by(fnr)
+rename kurstype ant_kurs
+merge ant_kurs into persondata
+
+use persondata
+use persondata
+generate Iutdanning = 'Nei'
+replace Iutdanning = 'ja' if ant_kurs >= 1
+
+tabulate utdniv Iutdanning , missing
+tabulate utdniv yrkstat Iutdanning , missing
+tabulate alder Iutdanning , missing
+
+
 // Legger til uføre 
 import fdb/UFOERP2011FDT_MOTTAK 2020-11-30 as ufore
 tabulate utdniv ufore, missing
@@ -219,6 +246,15 @@ tabulate fødeland_orig fødeland
 tabulate  utdniv fødeland, missing 
 tabulate  utdniv fødeland, missing rowpct
 tabulate  utdniv fødeland, missing colpct
+
+// Legger til Innvandringsgrunn 
+import fdb/BEFOLKNING_INNGRUNN1 as Inngrunn
+// test mot innvandringskategori
+tabulate Inngrunn Innvandringskategori, missing
+
+tabulate Inngrunn utdniv, missing 
+tabulate Inngrunn utdniv, missing rowpct
+tabulate Inngrunn utdniv fødeland, missing 
 
 //legger til yrke
 import fdb/REGSYS_ARB_YRKE_STYRK08 2020-11-16 as yrke
@@ -283,18 +319,20 @@ tabulate atidint yrkstat, summarize(atid) missing
 //legger til grunnskolepoeng
 // kun personer som har karakter i minst 8 av 11 fag får grunnskolepoeng
 import fdb/NUDB_KURS_GRPOENG as Gpoeng
-generate Grunnpoeng = 0
-replace Grunnpoeng = 1 if Gpoeng > 1
-replace Grunnpoeng = 2 if Gpoeng > 10
-replace Grunnpoeng = 3 if Gpoeng > 20
-replace Grunnpoeng = 4 if Gpoeng > 30
-replace Grunnpoeng = 5 if Gpoeng > 40
-replace Grunnpoeng = 6 if Gpoeng > 50
-replace Grunnpoeng = 7 if Gpoeng > 60
+generate Grunnpoeng = 'ingen'
+replace Grunnpoeng = '1-10' if Gpoeng > 1
+replace Grunnpoeng = '10-20' if Gpoeng > 10
+replace Grunnpoeng = '20-30' if Gpoeng > 20
+replace Grunnpoeng = '30-40' if Gpoeng > 30
+replace Grunnpoeng = '40-50' if Gpoeng > 40
+replace Grunnpoeng = '50-60' if Gpoeng > 50
+replace Grunnpoeng = 'Over 60' if Gpoeng > 60
 
 tabulate Grunnpoeng, missing
+tabulate ufore Grunnpoeng, missing
 tabulate Grunnpoeng, summarize(Gpoeng) missing
 tabulate alder Grunnpoeng, missing
 tabulate alder, summarize(Gpoeng) missing
 tabulate yrkstat utdniv, summarize(Gpoeng) missing
 tabulate yrkstat Grunnpoeng, missing
+tabulate ufore yrkstat Grunnpoeng, missing
