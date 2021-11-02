@@ -173,6 +173,11 @@ tabulate utdniv tettsted, missing
 tabulate utdniv tettsted, missing rowpct
 tabulate utdniv tettsted, missing colpct
 
+// Legger til boforhold - eie/leie 
+import fdb/BOFORHOLD_EIE_LEIE  2020-01-01 as eie_leie
+tabulate utdniv eie_leie , missing
+tabulate utdniv eie_leie , missing rowpct
+
 //Legger til yrkesstatus
 import fdb/REGSYS_ARB_ARBMARK_STATUS 2020-11-16 as yrkstat
 tabulate utdniv yrkstat, missing
@@ -182,8 +187,9 @@ tabulate utdniv yrkstat, missing rowpct
 create-dataset kursdata
 import-event fdb/NUDB_KURS_NUS 2020-01-01 to 2020-08-01 as kurstype
 destring kurstype, force
-
+// mulighet for å flitrerre ut kun utdanning på universitet og høyskoler
 //keep if kurstype >= 700000 & kurstype < 999999
+
 //Kobler på lenke mellom kurs-id og fødselsnumre
 create-dataset lenke_kurs_person
 import fdb/NUDB_KURS_FNR as fnr
@@ -196,14 +202,14 @@ rename kurstype ant_kurs
 merge ant_kurs into persondata
 
 use persondata
-use persondata
 generate Iutdanning = 'Nei'
 replace Iutdanning = 'ja' if ant_kurs >= 1
 
 tabulate utdniv Iutdanning , missing
+tabulate utdniv Iutdanning , missing rowpct
 tabulate utdniv yrkstat Iutdanning , missing
 tabulate alder Iutdanning , missing
-
+tabulate alder Iutdanning , missing rowpct
 
 // Legger til uføre 
 import fdb/UFOERP2011FDT_MOTTAK 2020-11-30 as ufore
@@ -267,6 +273,31 @@ tabulate yrke utdniv, missing
 tabulate alder utdniv, missing
 tabulate alder utdniv, missing rowpct
 
+//legger til familietype
+import fdb/BEFOLKNING_REGSTAT_FAMTYP 2021-01-01 as familie
+tabulate familie utdniv, missing
+tabulate familie utdniv, rowpct missing
+tabulate familie utdniv, colpct missing
+
+generate Familkat = substr(familie,1,1)
+generate Familiegruppe = '1- Enpersonsfamilie'
+replace Familiegruppe = '2 - Familier med barn under 18 år' if Familkat == '2'
+replace Familiegruppe = '3 - Andre familier' if Familkat == '3'
+tabulate Familiegruppe utdniv, missing
+tabulate Familiegruppe utdniv, missing rowpct
+
+import fdb/SIVSTANDFDT_SIVSTAND 2019-12-31 as sivilstand
+tabulate sivilstand utdniv, missing
+tabulate sivilstand utdniv, missing colpct
+
+import fdb/INNTEKT_WLONN 2019-12-31 as lonn2019
+summarize lonn2019
+tabulate yrkstat utdniv , summarize(lonn2019) missing
+
+replace lonn2019 = 0 if sysmiss (lonn2019)
+summarize lonn2019
+tabulate yrkstat utdniv , summarize(lonn2019) missing
+
 // fillterer ut de med grunnskole - SLÅS AV OG PÅ ETTER BEHOV
 keep if utdniv =='1'
 tabulate alder kjønn, missing
@@ -302,24 +333,30 @@ tabulate atiddesil, summarize(atid)
 //tabulate atiddesil, summarize(atid) min
 
 //Gruppere atid i  intervaller
-generate atidint = 0
-replace atidint = 1 if atid > 0
-replace atidint = 2 if atid > 15
-replace atidint = 3 if atid > 20
-replace atidint = 4 if atid > 25
-replace atidint = 5 if atid > 30
-replace atidint = 6 if atid > 35
-replace atidint = 7 if atid > 37.50
+generate atidint = 'ikke lønnstaker'
+replace atidint = '0-15' if atid > 0
+replace atidint = '15-20' if atid > 15
+replace atidint = '20-25' if atid > 20
+replace atidint = '25-30' if atid > 25
+replace atidint = '30-35' if atid > 30
+replace atidint = '35-37.5' if atid > 35
+replace atidint = 'Over 37.5' if atid > 37.50
 
 
 tabulate atidint yrkstat, missing
 tabulate atidint yrkstat, colpct
 tabulate atidint yrkstat, summarize(atid) missing
+tabulate atidint Innvandringskategori, missing
+tabulate atidint Innvandringskategori, missing rowpct
+tabulate atidint Innvandringskategori, missingcolpct
+tabulate atidint NAVregioner, missing
+tabulate atidint NAVregioner, missing rowpct
+
 
 //legger til grunnskolepoeng
 // kun personer som har karakter i minst 8 av 11 fag får grunnskolepoeng
 import fdb/NUDB_KURS_GRPOENG as Gpoeng
-generate Grunnpoeng = 'ingen'
+generate Grunnpoeng = '0 eller manglende opplysninger'
 replace Grunnpoeng = '1-10' if Gpoeng > 1
 replace Grunnpoeng = '10-20' if Gpoeng > 10
 replace Grunnpoeng = '20-30' if Gpoeng > 20
@@ -335,4 +372,7 @@ tabulate alder Grunnpoeng, missing
 tabulate alder, summarize(Gpoeng) missing
 tabulate yrkstat utdniv, summarize(Gpoeng) missing
 tabulate yrkstat Grunnpoeng, missing
+tabulate yrkstat Grunnpoeng, missing rowpct
 tabulate ufore yrkstat Grunnpoeng, missing
+tabulate ufore yrkstat Grunnpoeng, missing rowpct
+
