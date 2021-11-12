@@ -1,0 +1,38 @@
+require no.ssb.fdb:11 as fdb
+create-dataset data
+import fdb/REGSYS_ARB_ARBKOMM 2020-11-16 as arbeidsted
+generate fylke = substr(arbeidsted,1,2)
+keep if fylke == '16'| fylke == '17' | fylke == '50'
+
+import fdb/REGSYS_ARB_YRKE_STYRK08 2016-11-16 as yrke
+tabulate yrke, missing
+generate yrkenr = substr(yrke,1,4)
+
+
+tabulate yrke
+
+// Legger til Innvandringskategori
+import fdb/BEFOLKNING_INVKAT as kat
+generate Innvandringskategori = '3'
+replace Innvandringskategori = '1' if kat == 'B'
+replace Innvandringskategori = '2' if kat == 'C'
+define-labels Innvandringskategoritxt '1' 'Innvandrere' '2' 'Norskfødt med innvandrerforeldre' '3' 'Øvrig befolkning'
+assign-labels Innvandringskategori Innvandringskategoritxt
+
+tabulate yrke Innvandringskategori, missing
+
+
+// Legger til fødeland
+import fdb/BEFOLKNING_FODELAND as fødeland
+
+//Oppretter kopi av fødelandsvariabel for å kunne kontrollere omkodingen
+clone-variables fødeland -> fødeland_orig
+
+//Omkoder fødeland til verdensregion - bruker først destring for å gjøre formatet om til numerisk (kreves ved recode)
+destring fødeland
+recode fødeland (111 120 138 139 140 148 155 156 159/164 = 2) (101/141 144/158 = 1) (203/393 = 3) (143 404/578 = 4) (612 684 = 5) (601/775 = 6) (802/840 = 7) (980 = 8) (990 = 9)
+
+define-labels vregion 0 'Norge' 1 'EU/EØS' 2 'Europeiske land utenom EU' 3 'Afrika' 4 'Asia med Tyrkia' 5 'Nord-Amerika' 6 'Sør- og Mellom-Amerika' 7 'Oseania' 8 'Statsløse' 9 'Uoppgitt'
+assign-labels fødeland vregion
+
+tabulate yrke fødeland, missing
