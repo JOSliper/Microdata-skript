@@ -1,0 +1,56 @@
+require no.ssb.fdb:11 as fdb
+create-dataset data
+import fdb/REGSYS_ARB_ARBKOMM 2016-11-16 as arbeidsted
+generate fylke = substr(arbeidsted,1,2)
+keep if fylke == '16'| fylke == '17' | fylke == '50'
+
+import fdb/REGSYS_ARB_YRKE_STYRK08 2016-11-16 as yrke
+tabulate yrke, missing
+generate yrkenr = substr(yrke,1,4)
+
+//filtrering på 1 enklet yrke - henter det yrket man vil se på
+keep if yrkenr =='2223'
+tabulate yrke
+
+//Paneldata-analyse 1. Kopier verdiene over til et nytt datasett "paneldata" 
+clone-units data paneldata
+use paneldata
+// henter data på yrker i perioden
+import-panel fdb/REGSYS_ARB_YRKE_STYRK08 2016-11-16 2017-11-16 2018-11-16 2019-11-16 2020-11-16 
+tabulate-panel REGSYS_ARB_YRKE_STYRK08, missing
+
+//Paneldata-analyse 2. Kopier verdiene over til et nytt datasett "paneldata2"
+clone-units data paneldata2
+use paneldata2
+// henter data på arbeidsted i perioden
+import-panel fdb/REGSYS_ARB_ARBKOMM 2016-11-16 2017-11-16 2018-11-16 2019-11-16 2020-11-16 
+generate fylkeA = substr(REGSYS_ARB_ARBKOMM, 1, 2)
+
+tabulate-panel fylkeA, missing
+
+//Paneldata-analyse 3. Kopier verdiene over til et nytt datasett "paneldata3"
+clone-units data paneldata3
+use paneldata3
+// henter data på arbeidsmarkedstatus i perioden
+import-panel fdb/REGSYS_ARB_ARBMARK_STATUS 2016-11-16 2017-11-16 2018-11-16 2019-11-16 2020-11-16 
+
+tabulate-panel REGSYS_ARB_ARBMARK_STATUS, missing
+
+
+//Paneldata-analyse 4. Kopier verdiene over til et nytt datasett "paneldata4"
+clone-units data paneldata4
+use paneldata4
+// henter data på alderspensjon i perioden
+import-panel fdb/ALDPENSJ2011FDT_MOTTAK 2016-11-16 2017-11-16 2018-11-16 2019-11-16 
+
+tabulate-panel ALDPENSJ2011FDT_MOTTAK, missing
+
+
+//Paneldata-analyse 5. Kopier verdiene over til et nytt datasett "paneldata5"
+clone-units data paneldata5
+use paneldata5
+// henter data på dødsfall og utvandring i perioden
+import-panel fdb/BEFOLKNING_STATUSKODE 2016-01-01 2017-01-01 2018-01-01 2019-01-01 2020-01-01 2021-01-01
+
+// ikke bruk på enkelt næringer - avsløringskontroll
+//tabulate-panel BEFOLKNING_STATUSKODE, missing
