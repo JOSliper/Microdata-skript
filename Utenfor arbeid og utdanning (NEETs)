@@ -27,7 +27,7 @@ create-dataset lenke_kurs_person
 import fdb/NUDB_KURS_FNR as fnr
 merge fnr into kursdata
 
-//Lager statistikk (collapser) over antall hendelser med høy utdanning per individ, og kobler dette på persondatasettet
+//Lager statistikk (collapser) over antall hendelser av utdanning per individ, og kobler dette på persondatasettet
 use kursdata
 collapse (count) kurstype, by(fnr)
 rename kurstype ant_kurs
