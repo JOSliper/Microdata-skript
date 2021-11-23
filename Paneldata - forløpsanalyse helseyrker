@@ -8,10 +8,36 @@ import fdb/REGSYS_ARB_YRKE_STYRK08 2016-11-16 as yrke
 tabulate yrke, missing
 generate yrkenr = substr(yrke,1,4)
 
+
+
 //filtrering på 1 enklet yrke - henter det yrket man vil se på
 keep if yrkenr =='2223'
 tabulate yrke
 
+//henter kjønn 
+import fdb/BEFOLKNING_KJOENN as kjønn
+
+//henter alder 
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+generate alder = 2016 - int (faarmnd/100)
+summarize alder
+
+generate aldersgruppe = '0'
+replace aldersgruppe = '0-20 år' if alder > 0
+replace aldersgruppe = '20-29 år' if alder > 20
+replace aldersgruppe = '30-39 år' if alder > 30
+replace aldersgruppe = '40-49 år' if alder > 40
+replace aldersgruppe = '50-59 år' if alder > 50
+replace aldersgruppe = '60-67 år' if alder > 60
+replace aldersgruppe = 'Over 67 år ' if alder > 67
+replace aldersgruppe = 'Ukjent alder' if sysmiss(faarmnd)
+
+tabulate aldersgruppe
+tabulate aldersgruppe kjønn
+tabulate aldersgruppe kjønn, rowpct
+
+//hvis flere valgte yrker
+tabulate yrke , summarize(alder)
 
 //Paneldata-analyse 1. Kopier verdiene over til et nytt datasett "paneldata" 
 clone-units data paneldata
@@ -36,6 +62,7 @@ import-panel fdb/REGSYS_ARB_ARBKOMM 2016-11-16 2017-11-16 2018-11-16 2019-11-16 
 generate fylkeA = substr(REGSYS_ARB_ARBKOMM, 1, 2)
 
 tabulate-panel fylkeA, missing
+tabulate-panel REGSYS_ARB_ARBKOMM, missing
 
 //Paneldata-analyse 3. Kopier verdiene over til et nytt datasett "paneldata3"
 clone-units data paneldata3
