@@ -1,0 +1,146 @@
+require no.ssb.fdb:12 as fdb
+
+//Oppretter persondatasett for bosatte med variabel kjønn
+create-dataset persondata
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2021-01-01 as bosted
+import fdb/BEFOLKNING_KJOENN as kjønn
+generate fylke = substr(bosted,1,2)
+generate kom = substr(bosted,1,4)
+keep if fylke == '50'| fylke == '16'| fylke  == '17'
+
+//henter alder - bruker år -1 for å sikre at aldersfordelt befolkning samsvarere med tallene i statistikkbanken 
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+generate alder = 2020 - int (faarmnd/100)
+keep if alder >= 20
+keep if alder <= 66
+
+//legger til utdanningsnivå
+import fdb/NUDB_BU 2020-08-31 as utd
+generate utd1 = substr(utd,1,1)
+//lager kategorier
+generate utdniv = '9'
+replace utdniv = '0' if utd1 == '0'
+replace utdniv = '1' if utd1 == '1' | utd1 == '2'
+replace utdniv = '2' if utd1 == '3' | utd1 == '4' | utd1 == '5'
+replace utdniv = '3' if utd1 == '6'
+replace utdniv = '4' if utd1 == '7' | utd1 == '8'
+define-labels utdnivtxt '0' 'Ingen utdanning' '1' 'Grunnskolenivå' '2'  'Videregående grunnopplæring' '3' 'Universitets og høgskolenivå kort' '4' 'Universitets og høgskolenivå lang' '9' 'Uoppgitt el ingen utdanning'
+assign-labels utdniv utdnivtxt
+
+//beholder valgt utdanningsnivå
+keep if utdniv == '2'
+
+
+//Paneldata-analyse 1. Kopier verdiene over til et nytt datasett "paneldata" 
+clone-units persondata paneldata
+use paneldata
+// henter data på arbeidsforhold, med info om kjønn i perioden
+import-panel fdb/ARBLONN_PERS_KJOENN 2021-01-16 2021-02-16 2021-03-16 2021-04-16 2021-05-16 2021-06-16 2021-07-16
+
+//Tabell på antall arbeidsforhold fordelt på kjønn 
+tabulate-panel ARBLONN_PERS_KJOENN
+
+//lager dummyvariabel  På i arbeid eller ikke i arbeid
+generate Arbeid = 'I arbeid'
+replace Arbeid = 'Ikke i arbeid' if sysmiss(ARBLONN_PERS_KJOENN)
+
+tabulate-panel Arbeid
+tabulate-panel Arbeid, colpct
+
+//...................................................................
+//nykjøring på 2020data
+//Oppretter persondatasett for bosatte med variabel kjønn
+create-dataset persondata2
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2020-01-01 as bosted
+import fdb/BEFOLKNING_KJOENN as kjønn
+generate fylke = substr(bosted,1,2)
+generate kom = substr(bosted,1,4)
+keep if fylke == '50'| fylke == '16'| fylke  == '17'
+
+//henter alder - bruker år -1 for å sikre at aldersfordelt befolkning samsvarere med tallene i statistikkbanken 
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+generate alder = 2019 - int (faarmnd/100)
+keep if alder >= 20
+keep if alder <= 66
+
+//legger til utdanningsnivå
+import fdb/NUDB_BU 2019-08-31 as utd
+generate utd1 = substr(utd,1,1)
+//lager kategorier
+generate utdniv = '9'
+replace utdniv = '0' if utd1 == '0'
+replace utdniv = '1' if utd1 == '1' | utd1 == '2'
+replace utdniv = '2' if utd1 == '3' | utd1 == '4' | utd1 == '5'
+replace utdniv = '3' if utd1 == '6'
+replace utdniv = '4' if utd1 == '7' | utd1 == '8'
+define-labels utdnivtxt1 '0' 'Ingen utdanning' '1' 'Grunnskolenivå' '2'  'Videregående grunnopplæring' '3' 'Universitets og høgskolenivå kort' '4' 'Universitets og høgskolenivå lang' '9' 'Uoppgitt el ingen utdanning'
+assign-labels utdniv utdnivtxt1
+
+//beholder valgt utdanningsnivå
+keep if utdniv == '2'
+
+//Paneldata-analyse 1. Kopier verdiene over til et nytt datasett "paneldata" 
+clone-units persondata2 paneldata2
+use paneldata2
+// henter data på arbeidsforhold, med info om kjønn i perioden
+import-panel fdb/ARBLONN_PERS_KJOENN 2020-01-16 2020-02-16 2020-03-16 2020-04-16 2020-05-16 2020-06-16 2020-07-16 2020-08-16 2020-09-16 2020-10-16 2020-11-16 2020-12-16
+
+//Tabell på antall arbeidsforhold fordelt på kjønn 
+tabulate-panel ARBLONN_PERS_KJOENN
+
+//lager dummyvariabel  På i arbeid eller ikke i arbeid
+generate Arbeid = 'I arbeid'
+replace Arbeid = 'Ikke i arbeid' if sysmiss(ARBLONN_PERS_KJOENN)
+
+tabulate-panel Arbeid
+tabulate-panel Arbeid, colpct
+
+
+//...................................................................
+//nykjøring på 2019data
+//Oppretter persondatasett for bosatte med variabel kjønn
+create-dataset persondata3
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2019-01-01 as bosted
+import fdb/BEFOLKNING_KJOENN as kjønn
+generate fylke = substr(bosted,1,2)
+generate kom = substr(bosted,1,4)
+keep if fylke == '50'| fylke == '16'| fylke  == '17'
+
+//henter alder - bruker år -1 for å sikre at aldersfordelt befolkning samsvarere med tallene i statistikkbanken 
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+generate alder = 2018 - int (faarmnd/100)
+keep if alder >= 20
+keep if alder <= 66
+
+//legger til utdanningsnivå
+import fdb/NUDB_BU 2018-08-31 as utd
+generate utd1 = substr(utd,1,1)
+//lager kategorier
+generate utdniv = '9'
+replace utdniv = '0' if utd1 == '0'
+replace utdniv = '1' if utd1 == '1' | utd1 == '2'
+replace utdniv = '2' if utd1 == '3' | utd1 == '4' | utd1 == '5'
+replace utdniv = '3' if utd1 == '6'
+replace utdniv = '4' if utd1 == '7' | utd1 == '8'
+define-labels utdnivtxt2 '0' 'Ingen utdanning' '1' 'Grunnskolenivå' '2'  'Videregående grunnopplæring' '3' 'Universitets og høgskolenivå kort' '4' 'Universitets og høgskolenivå lang' '9' 'Uoppgitt el ingen utdanning'
+assign-labels utdniv utdnivtxt2
+
+//beholder valgt utdanningsnivå
+keep if utdniv == '2'
+
+
+//Paneldata-analyse 1. Kopier verdiene over til et nytt datasett "paneldata" 
+clone-units persondata3 paneldata3
+use paneldata3
+// henter data på arbeidsforhold, med info om kjønn i perioden
+import-panel fdb/ARBLONN_PERS_KJOENN 2019-01-16 2019-02-16 2019-03-16 2019-04-16 2019-05-16 2019-06-16 2019-07-16 2019-08-16 2019-09-16 2019-10-16 2019-11-16 2019-12-16
+
+//Tabell på antall arbeidsforhold fordelt på kjønn 
+tabulate-panel ARBLONN_PERS_KJOENN
+
+//lager dummyvariabel  På i arbeid eller ikke i arbeid
+generate Arbeid = 'I arbeid'
+replace Arbeid = 'Ikke i arbeid' if sysmiss(ARBLONN_PERS_KJOENN)
+
+tabulate-panel Arbeid
+tabulate-panel Arbeid, colpct
