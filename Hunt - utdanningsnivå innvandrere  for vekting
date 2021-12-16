@@ -1,0 +1,52 @@
+require no.ssb.fdb:12 as fdb
+
+//Oppretter persondatasett for bosatte med variabel kjønn
+create-dataset persondata
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2019-01-01 as bosted
+import fdb/BEFOLKNING_KJOENN as kjønn
+generate fylke = substr(bosted,1,2)
+generate kommnr = substr(bosted,1,4)
+keep if fylke == '50'| fylke == '16'| fylke  == '17'  | kommnr  == '1567'| kommnr  == '1571'  
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+
+//henter alder - bruker år -1 for å sikre at aldersfordelt befolkning samsvarere med tallene i statistikkbanken 
+generate alder = 2018 - int (faarmnd/100)
+keep if alder >= 18
+
+//legger til utdanningsnivå
+import fdb/NUDB_BU 2019-08-31 as utd
+generate utd1 = substr(utd,1,1)
+//lager kategorier
+generate utdniv = '9'
+replace utdniv = '0' if utd1 == '0'
+replace utdniv = '1' if utd1 == '1' | utd1 == '2'
+replace utdniv = '2' if utd1 == '3' | utd1 == '4' | utd1 == '5'
+replace utdniv = '3' if utd1 == '6'
+replace utdniv = '4' if utd1 == '7' | utd1 == '8'
+define-labels utdnivtxt '0' 'Ingen utdanning' '1' 'Grunnskolenivå' '2'  'Videregående grunnopplæring' '3' 'Universitets og høgskolenivå kort' '4' 'Universitets og høgskolenivå lang' '9' 'Uoppgitt utdanning'
+assign-labels utdniv utdnivtxt
+
+// Legger til fødeland
+import fdb/BEFOLKNING_FODELAND as fødeland
+
+//data på enkelt land
+tabulate fødeland utdniv, missing 
+tabulate fødeland utdniv, missing rowpct
+
+//Oppretter kopi av fødelandsvariabel for å kunne kontrollere omkodingen
+clone-variables fødeland -> fødeland_orig
+
+//Omkoder fødeland til verdensregion - bruker først destring for å gjøre formatet om til numerisk (kreves ved recode)
+destring fødeland
+recode fødeland (101/106 = 1)  (112/119 121/137 141 144 146 152 153 157 158 = 2) (111 120 138 139 140 148 155 156 159/164 = 3) (203/393 = 4) (143 404/578 = 5) (612 684  802/840= 6) (601/775 = 7) (980 = 9) (990 = 10)
+
+define-labels vregion 0 'Norge' 1 'Norden_u_Norg' 2 'EU/EOSuNorden' 3 'Europeiske land utenom EU' 4 'Afrika' 5 'Asia med Tyrkia' 6 'Nord-Amerika og Oseania' 7 'Sør- og Mellom-Amerika' 9 'Statsløse' 10 'Uoppgitt' 11 'Uoppgitt'
+assign-labels fødeland vregion
+// tester
+tabulate fødeland
+tabulate fødeland_orig fødeland
+
+// fødeland og utdanningsnivå
+tabulate  utdniv fødeland, missing 
+tabulate  utdniv fødeland, missing rowpct
+tabulate  utdniv fødeland, missing colpct
