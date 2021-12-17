@@ -50,3 +50,6 @@ tabulate fødeland_orig fødeland
 tabulate  utdniv fødeland, missing 
 tabulate  utdniv fødeland, missing rowpct
 tabulate  utdniv fødeland, missing colpct
+
+// fødeland og utdanningsnivå fordelt på kjønn
+tabulate  kjønn fødeland utdniv, missing 
