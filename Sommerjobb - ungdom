@@ -6,7 +6,7 @@ import fdb/BEFOLKNING_KOMMNR_FORMELL 2021-01-01 as bosted
 import fdb/BEFOLKNING_KJOENN as kjønn
 generate fylke = substr(bosted,1,2)
 generate kom = substr(bosted,1,4)
-keep if fylke == '50'| fylke == '16'| fylke  == '17'
+keep if fylke == '50'| fylke == '16'| fylke  == '17' | kommnr  == '1567'| kommnr  == '1571' 
 
 //henter alder - bruker år -1 for å sikre at aldersfordelt befolkning samsvarere med tallene i statistikkbanken 
 import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
