@@ -13,6 +13,7 @@ import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
 generate alder = 2018 - int (faarmnd/100)
 keep if alder >= 18
 
+
 //legger til utdanningsnivå
 import fdb/NUDB_BU 2019-08-31 as utd
 generate utd1 = substr(utd,1,1)
@@ -25,6 +26,7 @@ replace utdniv = '3' if utd1 == '6'
 replace utdniv = '4' if utd1 == '7' | utd1 == '8'
 define-labels utdnivtxt '0' 'Ingen utdanning' '1' 'Grunnskolenivå' '2'  'Videregående grunnopplæring' '3' 'Universitets og høgskolenivå kort' '4' 'Universitets og høgskolenivå lang' '9' 'Uoppgitt utdanning'
 assign-labels utdniv utdnivtxt
+
 
 // Legger til fødeland
 import fdb/BEFOLKNING_FODELAND as fødeland
@@ -53,3 +55,34 @@ tabulate  utdniv fødeland, missing colpct
 
 // fødeland og utdanningsnivå fordelt på kjønn
 tabulate  kjønn fødeland utdniv, missing 
+
+
+//Gruppere i aldersintervaller 20 årsgrupper
+generate alderint = 'Ukjent '
+replace alderint = ' 18-39' if alder >= 18
+replace alderint = ' 40-59' if alder >= 40
+replace alderint = ' 60-79' if alder >= 60
+replace alderint = ' 80-99' if alder >= 80
+replace alderint = '100+' if alder  >= 100
+
+// fødeland og utdanningsnivå fordelt på aldersgruppe
+tabulate alderint fødeland utdniv, missing 
+tabulate alderint fødeland , missing 
+tabulate kjønn fødeland alderint, missing 
+
+//Gruppere i aldersintervaller 10 årsgrupper
+generate alderint2 = 'Ukjent '
+replace alderint2 = ' 18-29' if alder >= 18
+replace alderint2 = ' 30-39' if alder >= 30
+replace alderint2 = ' 40-49' if alder >= 40
+replace alderint2 = ' 50-59' if alder >= 50
+replace alderint2 = ' 60-69' if alder >= 60
+replace alderint2 = ' 70-79' if alder >= 70
+replace alderint2 = ' 80-89' if alder >= 80
+replace alderint2 = ' 90-99' if alder >= 90
+replace alderint2 = '100+' if alder  >= 100
+
+// fødeland og utdanningsnivå fordelt på aldersgruppe
+tabulate alderint2 fødeland utdniv, missing 
+tabulate alderint2 fødeland , missing 
+tabulate kjønn fødeland alderint2, missing 
