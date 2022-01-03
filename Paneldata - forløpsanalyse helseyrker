@@ -1,4 +1,4 @@
-require no.ssb.fdb:11 as fdb
+require no.ssb.fdb:12 as fdb
 create-dataset data
 import fdb/REGSYS_ARB_ARBKOMM 2016-11-16 as arbeidsted
 generate fylke = substr(arbeidsted,1,2)
@@ -8,36 +8,50 @@ import fdb/REGSYS_ARB_YRKE_STYRK08 2016-11-16 as yrke
 tabulate yrke, missing
 generate yrkenr = substr(yrke,1,4)
 
-
-
 //filtrering på 1 enklet yrke - henter det yrket man vil se på
-keep if yrkenr =='2223'
+keep if yrkenr =='5329'
 tabulate yrke
 
-//henter kjønn 
-import fdb/BEFOLKNING_KJOENN as kjønn
+//test pensjon og stødnad vs utenfor arbeidsmarked slutt år 
+// import fdb/REGSYS_ARB_ARBMARK_STATUS 2020-11-16 as Status
+// import fdb/ALDPENSJ2011FDT_MOTTAK 2020-11-16 as pensjon
+// import fdb/UFOERP2011FDT_MOTTAK 2020-11-16 as Ufør
+// import fdb/AFPO2011FDT_MOTTAK 2020-11-16 as AFPoff
+// import fdb/AFPP2011FDT_MOTTAK 2020-11-16 as AFPpri
+// tabulate pensjon Status, missing
+// tabulate pensjon Status, missing colpct
+// tabulate Ufør Status, missing
+// tabulate Ufør Status, missing colpct
+// tabulate AFPoff Status, missing
+// tabulate AFPoff Status, missing colpct
+// tabulate AFPpri Status, missing
+// tabulate AFPpri Status, missing colpct
 
 //henter alder 
-import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
-generate alder = 2016 - int (faarmnd/100)
-summarize alder
+//  import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+// generate alder = 2016 - int (faarmnd/100)
+// summarize alder
 
-generate aldersgruppe = '0'
-replace aldersgruppe = '0-20 år' if alder > 0
-replace aldersgruppe = '20-29 år' if alder > 20
-replace aldersgruppe = '30-39 år' if alder > 30
-replace aldersgruppe = '40-49 år' if alder > 40
-replace aldersgruppe = '50-59 år' if alder > 50
-replace aldersgruppe = '60-67 år' if alder > 60
-replace aldersgruppe = 'Over 67 år ' if alder > 67
-replace aldersgruppe = 'Ukjent alder' if sysmiss(faarmnd)
+// generate aldersgruppe = '0'
+// replace aldersgruppe = '0-20 år' if alder > 0
+// replace aldersgruppe = '20-29 år' if alder > 20
+// replace aldersgruppe = '30-39 år' if alder > 30
+// replace aldersgruppe = '40-49 år' if alder > 40
+// replace aldersgruppe = '50-59 år' if alder > 50
+// replace aldersgruppe = '60-67 år' if alder > 60
+// replace aldersgruppe = 'Over 67 år ' if alder > 67
+// replace aldersgruppe = 'Ukjent alder' if sysmiss(faarmnd)
 
-tabulate aldersgruppe
-tabulate aldersgruppe kjønn
-tabulate aldersgruppe kjønn, rowpct
+//henter kjønn 
+// import fdb/BEFOLKNING_KJOENN as kjønn
+// tabulate aldersgruppe
+// tabulate aldersgruppe kjønn, missing
+// tabulate aldersgruppe kjønn, missing rowpct
 
 //hvis flere valgte yrker
-tabulate yrke , summarize(alder)
+// tabulate yrke , summarize(alder)
+
+//.................................
 
 //Paneldata-analyse 1. Kopier verdiene over til et nytt datasett "paneldata" 
 clone-units data paneldata
