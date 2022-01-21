@@ -1,0 +1,79 @@
+require no.ssb.fdb:12 as fdb
+create-dataset data
+import fdb/REGSYS_ARB_ARBKOMM 2016-11-16 as arbeidsted
+generate fylke = substr(arbeidsted,1,2)
+keep if fylke == '16'| fylke == '17' | fylke == '50'
+
+import fdb/REGSYS_ARB_YRKE_STYRK08 2016-11-16 as yrke
+tabulate yrke, missing
+generate yrkenr = substr(yrke,1,4)
+
+//filtrering på  yrke - henter det yrket man vil se på
+keep if yrkenr =='5329' | yrkenr == '5321' | yrkenr == '2223' | yrkenr == '2224' | yrkenr == '2221' | yrkenr == '2212'
+
+tabulate yrke
+//...........................
+//henter alder 
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+generate alder = 2016 - int (faarmnd/100)
+summarize alder
+
+//hvis flere valgte yrker
+tabulate yrke , summarize(alder)
+tabulate yrke , summarize(alder) p50
+
+
+generate aldersgruppe = '0'
+replace aldersgruppe = '0-20 år' if alder > 0
+replace aldersgruppe = '20-29 år' if alder > 20
+replace aldersgruppe = '30-39 år' if alder > 30
+replace aldersgruppe = '40-49 år' if alder > 40
+replace aldersgruppe = '50-59 år' if alder > 50
+replace aldersgruppe = '60-67 år' if alder > 60
+replace aldersgruppe = 'Over 67 år ' if alder > 67
+replace aldersgruppe = 'Ukjent alder' if sysmiss(faarmnd)
+
+tabulate yrke aldersgruppe, missing
+tabulate yrke aldersgruppe, missing rowpct
+
+//...........................
+//henter kjønn 
+import fdb/BEFOLKNING_KJOENN as kjønn
+tabulate yrke kjønn, missing
+tabulate yrke kjønn, missing rowpct
+
+//...........................
+//legger til utdanningsnivå
+import fdb/NUDB_BU 2016-08-31 as utd
+generate utd1 = substr(utd,1,1)
+//lager kategorier
+generate utdniv = '9'
+replace utdniv = '0' if utd1 == '0'
+replace utdniv = '1' if utd1 == '1' | utd1 == '2'
+replace utdniv = '2' if utd1 == '3' | utd1 == '4' | utd1 == '5'
+replace utdniv = '3' if utd1 == '6'
+replace utdniv = '4' if utd1 == '7' | utd1 == '8'
+define-labels utdnivtxt '0' 'Ingen utdanning' '1' 'Grunnskolenivå' '2'  'Videregående grunnopplæring' '3' 'Universitets og høgskolenivå kort' '4' 'Universitets og høgskolenivå lang' '9' 'Uoppgitt utdanning'
+assign-labels utdniv utdnivtxt
+
+tabulate yrke utdniv, missing 
+tabulate yrke utdniv, missing rowpct
+
+//henter arbeidstid
+import fdb/REGSYS_ARB_ARBEIDSTID 2016-11-16 as atid
+summarize atid  
+tabulate yrke, summarize(atid)
+
+//Gruppere atid i  intervaller
+generate atidint = 'ikke lønnstaker'
+replace atidint = '0-15' if atid > 0
+replace atidint = '15-20' if atid > 15
+replace atidint = '20-25' if atid > 20
+replace atidint = '25-30' if atid > 25
+replace atidint = '30-35' if atid > 30
+replace atidint = '35-37.5' if atid > 35
+replace atidint = 'Over 37.5' if atid > 37.50
+
+
+tabulate atidint yrke, missing
+tabulate atidint yrke, colpct
