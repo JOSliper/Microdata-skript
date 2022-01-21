@@ -1,0 +1,105 @@
+require no.ssb.fdb:12 as fdb
+create-dataset data
+import fdb/REGSYS_ARB_ARBKOMM 2016-11-16 as arbeidsted
+generate fylke = substr(arbeidsted,1,2)
+keep if fylke == '16'| fylke == '17' | fylke == '50'
+
+import fdb/REGSYS_ARB_YRKE_STYRK08 2016-11-16 as yrke
+tabulate yrke, missing
+generate yrkenr = substr(yrke,1,4)
+
+//filtrering på 1 enklet yrke - henter det yrket man vil se på
+keep if yrkenr =='2223'
+tabulate yrke
+
+//tester på  pensjon og stødnad vs utenfor arbeidsmarked slutt år 
+//import fdb/REGSYS_ARB_ARBMARK_STATUS 2020-11-16 as Status
+//import fdb/ALDPENSJ2011FDT_MOTTAK 2020-11-16 as pensjon
+//import fdb/UFOERP2011FDT_MOTTAK 2020-11-16 as Ufør
+//import fdb/AFPO2011FDT_MOTTAK 2020-11-16 as AFPoff
+//import fdb/AFPP2011FDT_MOTTAK 2020-11-16 as AFPpri
+//tabulate pensjon Status, missing
+//tabulate pensjon Status, missing colpct
+//tabulate Ufør Status, missing
+//tabulate Ufør Status, missing colpct
+//tabulate AFPoff Status, missing
+//tabulate AFPoff Status, missing colpct
+//tabulate AFPpri Status, missing
+//tabulate AFPpri Status, missing colpct
+
+//henter alder 
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+generate alder = 2016 - int (faarmnd/100)
+summarize alder
+
+generate aldersgruppe = '0'
+replace aldersgruppe = '0-20 år' if alder > 0
+replace aldersgruppe = '20-29 år' if alder > 20
+replace aldersgruppe = '30-39 år' if alder > 30
+replace aldersgruppe = '40-49 år' if alder > 40
+replace aldersgruppe = '50-59 år' if alder > 50
+replace aldersgruppe = '60-67 år' if alder > 60
+replace aldersgruppe = 'Over 67 år ' if alder > 67
+replace aldersgruppe = 'Ukjent alder' if sysmiss(faarmnd)
+
+//henter kjønn 
+import fdb/BEFOLKNING_KJOENN as kjønn
+tabulate aldersgruppe
+tabulate aldersgruppe kjønn, missing
+tabulate aldersgruppe kjønn, missing rowpct
+
+//hvis flere valgte yrker
+// tabulate yrke , summarize(alder)
+
+//.................................
+
+//Paneldata-analyse 1. Kopier verdiene over til et nytt datasett "paneldata" 
+clone-units data paneldata
+use paneldata
+// henter data på yrker i perioden
+import-panel fdb/REGSYS_ARB_YRKE_STYRK08 2016-11-16 2017-11-16 2018-11-16 2019-11-16 2020-11-16 
+tabulate-panel REGSYS_ARB_YRKE_STYRK08, missing
+tabulate-panel REGSYS_ARB_YRKE_STYRK08, missing colpct
+
+// lager samlekategori for helseyrker og andre yrker
+generate styrk4siffer = substr(REGSYS_ARB_YRKE_STYRK08, 1, 4)
+generate Hyrker = '2-Andre yrker' 
+replace Hyrker = '1-Helseyrker' if styrk4siffer == '1342'| styrk4siffer == '1343'| styrk4siffer == '1344'|  styrk4siffer == '2211'| styrk4siffer == '2212'| styrk4siffer == '2221'|  styrk4siffer == '2222'|styrk4siffer == '2223'| styrk4siffer == '2224'| styrk4siffer == '2250'| styrk4siffer == '2261'| styrk4siffer == '2262'| styrk4siffer == '2263'| styrk4siffer == '2264'| styrk4siffer == '2265'| styrk4siffer == '2266'| styrk4siffer == '2267'| styrk4siffer == '2269'| styrk4siffer == '3211'| styrk4siffer == '3213'| styrk4siffer == '3230'|styrk4siffer == '3240'|styrk4siffer == '3251'|styrk4siffer == '3254'|styrk4siffer == '3256'|styrk4siffer == '3257'|styrk4siffer == '3258'|styrk4siffer == '3259'| styrk4siffer == '5321'| styrk4siffer == '5322'|styrk4siffer == '5329'
+replace Hyrker = 'Syssmiss' if sysmiss(styrk4siffer)
+tabulate-panel Hyrker
+
+//Paneldata-analyse 2. Kopier verdiene over til et nytt datasett "paneldata2"
+clone-units data paneldata2
+use paneldata2
+// henter data på arbeidsted i perioden
+import-panel fdb/REGSYS_ARB_ARBKOMM 2016-11-16 2017-11-16 2018-11-16 2019-11-16 2020-11-16 
+generate fylkeA = substr(REGSYS_ARB_ARBKOMM, 1, 2)
+
+tabulate-panel fylkeA, missing
+tabulate-panel REGSYS_ARB_ARBKOMM, missing
+
+//Paneldata-analyse 3. Kopier verdiene over til et nytt datasett "paneldata3"
+clone-units data paneldata3
+use paneldata3
+// henter data på arbeidsmarkedstatus i perioden
+import-panel fdb/REGSYS_ARB_ARBMARK_STATUS 2016-11-16 2017-11-16 2018-11-16 2019-11-16 2020-11-16 
+
+tabulate-panel REGSYS_ARB_ARBMARK_STATUS, missing
+
+
+//Paneldata-analyse 4. Kopier verdiene over til et nytt datasett "paneldata4"
+clone-units data paneldata4
+use paneldata4
+// henter data på alderspensjon i perioden
+import-panel fdb/ALDPENSJ2011FDT_MOTTAK 2016-11-16 2017-11-16 2018-11-16 2019-11-16 2020-11-16 
+
+tabulate-panel ALDPENSJ2011FDT_MOTTAK, missing
+
+
+//Paneldata-analyse 5. Kopier verdiene over til et nytt datasett "paneldata5"
+clone-units data paneldata5
+use paneldata5
+// henter data på dødsfall og utvandring i perioden
+import-panel fdb/BEFOLKNING_STATUSKODE 2016-01-01 2017-01-01 2018-01-01 2019-01-01 2020-01-01 2021-01-01
+
+tabulate-panel BEFOLKNING_STATUSKODE, missing
