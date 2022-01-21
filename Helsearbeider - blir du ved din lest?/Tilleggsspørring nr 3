@@ -1,0 +1,63 @@
+require no.ssb.fdb:12 as fdb
+create-dataset data
+import fdb/REGSYS_ARB_ARBKOMM 2016-11-16 as arbeidsted
+generate fylke = substr(arbeidsted,1,2)
+keep if fylke == '16'| fylke == '17' | fylke == '50'
+
+import fdb/REGSYS_ARB_YRKE_STYRK08 2016-11-16 as yrke
+tabulate yrke, missing
+generate yrkenr = substr(yrke,1,4)
+
+//filtrering på yrke - henter det yrket man vil se på
+keep if yrkenr =='5329' 
+drop if sysmiss(yrke)
+tabulate yrke, missing
+
+//henter arbeidstid
+import fdb/REGSYS_ARB_ARBEIDSTID 2016-11-16 as atid
+summarize atid  
+
+
+//Gruppere atid i  intervaller
+generate atidint = 'ikke lønnstaker'
+replace atidint = '0-15' if atid > 0
+replace atidint = '15-20' if atid > 15
+replace atidint = '20-25' if atid > 20
+replace atidint = '25-30' if atid > 25
+replace atidint = '30-35' if atid > 30
+replace atidint = '35-37.5' if atid > 35
+replace atidint = 'Over 37.5' if atid > 37.50
+
+tabulate atidint, missing
+
+//.......................
+import fdb/REGSYS_ARB_YRKE_STYRK08 2020-11-16 as yrke2020
+generate yrkenr2020 = substr(yrke2020,1,4)
+
+//filtrering på yrke - henter det yrket man vil se på
+//keep if yrkenr2020 =='5329' 
+keep if yrkenr2020 !='5329' 
+drop if sysmiss(yrke2020)
+
+//henter arbeidstid
+import fdb/REGSYS_ARB_ARBEIDSTID 2020-11-16 as atid2020
+summarize atid2020  
+
+//dummy kode til bruk hvis det blir for liten enkelt gruppe - bruk uten filltert over på yrkenr2020
+//generate dummy = '1'
+//replace dummy=  '0' if yrkenr2020 !='2221'
+//tabulate dummy , summarize(atid2020) mean std p25 p50 p75 
+
+//Gruppere atid i  intervaller
+generate atidint2 = 'ikke lønnstaker'
+replace atidint2 = '0-15' if atid2020 > 0
+replace atidint2 = '15-20' if atid2020 > 15
+replace atidint2 = '20-25' if atid2020 > 20
+replace atidint2 = '25-30' if atid2020 > 25
+replace atidint2 = '30-35' if atid2020 > 30
+replace atidint2 = '35-37.5' if atid2020 > 35
+replace atidint2 = 'Over 37.5' if atid2020 > 37.50
+
+tabulate atidint2, missing
+
+tabulate atidint atidint2, missing
