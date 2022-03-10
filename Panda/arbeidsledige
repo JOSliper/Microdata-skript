@@ -14,7 +14,7 @@ generate alder = 2019 - int (faarmnd/100)
 //keep if alder >= 18
 
 
-//Gruppere i aldersintervaller 10 årsgrupper
+//Gruppere i aldersintervaller 5 årsgrupper
 generate alderint = 'for ung'
 replace alderint = '15-19' if alder >= 15
 replace alderint = '20-24' if alder >= 20
