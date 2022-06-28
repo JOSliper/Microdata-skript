@@ -55,7 +55,6 @@ replace Innvandringskategori = '2' if kat == 'C'
 define-labels Innvandringskategoritxt '1' 'Innvandrere' '2' 'Norskfødt med innvandrerforeldre' '3' 'Øvrig befolkning'
 assign-labels Innvandringskategori Innvandringskategoritxt
 
-
 tabulate Innvandringskategori pendler , missing
 tabulate Innvandringskategori pendler , rowpct
 
@@ -140,5 +139,32 @@ replace atidint = 'Over 37.5' if atid > 37.50
 //tabeller arbeidstid og pendling
 tabulate atidint pendler, missing
 tabulate atidint pendler, colpct
+tabulate atidint pendler, rowpct
 tabulate atidint pendler, summarize(atid) missing
 
+//henter data om yrke
+import fdb/REGSYS_ARB_YRKE_STYRK08 2021-11-16 as yrke
+generate yrke2 = substr(yrke,1,2)
+generate yrke3 = substr(yrke,1,3)
+generate yrke1 = substr(yrke,1,1)
+
+tabulate yrke pendler, missing
+tabulate yrke pendler, rowpct
+
+//legger til regioner
+//Bosted-Aksen-kyst-innland
+generate RegionAkseKystInnland = 99
+replace RegionAkseKystInnland = 'Aksen' if Bkommnr == '5001' | Bkommnr == '5006' | Bkommnr == '5028'| Bkommnr == '5029'| Bkommnr == '5031' | Bkommnr == '5035' |Bkommnr == '5036' |Bkommnr == '5037'| Bkommnr == '5038' | Bkommnr == '5053' |Bkommnr == '5059'
+replace RegionAkseKystInnland = 'Innland' if Bkommnr == '5021'| Bkommnr == '5022'| Bkommnr == '5025'| Bkommnr == '5026'| Bkommnr == '5027' |Bkommnr == '5032' | Bkommnr == '5033' |Bkommnr == '5034' |Bkommnr == '5041'| Bkommnr == '5042'| Bkommnr == '5043'| Bkommnr == '5044'| Bkommnr == '5045'| Bkommnr == '5046'| Bkommnr == '5047' | Bkommnr == '5061'
+replace RegionAkseKystInnland = 'Kyst' if Bkommnr == '5007' |Bkommnr == '5014' | Bkommnr == '5020'| Bkommnr == '5049'| Bkommnr == '5052'| Bkommnr == '5054'| Bkommnr == '5055'| Bkommnr == '5056'| Bkommnr == '5057'| Bkommnr == '5058' | Bkommnr == '5060'
+
+// test kommune plassering
+tabulate bosted RegionAkseKystInnland, missing
+
+// utdnningsnivå til pendlere etter bostedsregion 3 delt 
+tabulate RegionAkseKystInnland pendler utdniv, missing
+tabulate RegionAkseKystInnland pendler utdniv, rowpct
+
+// innvandringskategori til pendlere etter bostedsregion 3 delt 
+tabulate RegionAkseKystInnland pendler Innvandringskategori, missing
+tabulate RegionAkseKystInnland pendler Innvandringskategori, rowpct
