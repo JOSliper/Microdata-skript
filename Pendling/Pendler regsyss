@@ -1,0 +1,134 @@
+require no.ssb.fdb:17 as fdb
+create-dataset Dataset
+
+//henter arbeidsstedskommune 
+import fdb/REGSYS_ARB_ARBKOMM 2021-11-16 as arbeidsted
+generate AFylke = substr(arbeidsted,1,2)
+generate Akommnr = substr(arbeidsted,1,4)
+keep if AFylke == '50'
+
+//henter personer som bor i Trøndelag
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2022-01-01 as bosted
+generate BFylke = substr(bosted,1,2)
+generate Bkommnr = substr(bosted,1,4)
+tabulate  BFylke
+keep if BFylke == '50'
+
+//henter alder - bruker år -1 for å sikre at aldersfordelt befolkning samsvarere med tallene i statistikkbanken 
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+generate alder = 2021 - int (faarmnd/100)
+//keep if alder >= 19
+//keep if alder <= 60
+
+generate aldersgruppe = '0'
+replace aldersgruppe = '0-20 år' if alder > 0
+replace aldersgruppe = '20-29 år' if alder > 20
+replace aldersgruppe = '30-39 år' if alder > 30
+replace aldersgruppe = '40-49 år' if alder > 40
+replace aldersgruppe = '50-59 år' if alder > 50
+replace aldersgruppe = '60-67 år' if alder > 60
+replace aldersgruppe = 'Over 67 år ' if alder > 67
+replace aldersgruppe = 'Ukjent alder' if sysmiss(faarmnd)
+
+//henter info om kjønn
+import fdb/BEFOLKNING_KJOENN as kjønn
+
+//lager dummy pendler
+generate pendler = 'pendler'
+replace pendler = 'Ikke pendler' if Bkommnr == Akommnr
+
+tabulate pendler kjønn, missing
+tabulate pendler kjønn, missing colpct
+
+tabulate aldersgruppe pendler, missing
+tabulate aldersgruppe pendler, missing rowpct
+
+tabulate kjønn pendler aldersgruppe, missing
+tabulate kjønn pendler aldersgruppe, rowpct
+
+// Legger til Innvandringskategori
+import fdb/BEFOLKNING_INVKAT as kat
+generate Innvandringskategori = '3'
+replace Innvandringskategori = '1' if kat == 'B'
+replace Innvandringskategori = '2' if kat == 'C'
+define-labels Innvandringskategoritxt '1' 'Innvandrere' '2' 'Norskfødt med innvandrerforeldre' '3' 'Øvrig befolkning'
+assign-labels Innvandringskategori Innvandringskategoritxt
+
+
+tabulate pendler Innvandringskategori, missing
+tabulate pendler Innvandringskategori, colpct
+
+tabulate kjønn pendler Innvandringskategori, missing
+tabulate kjønn pendler Innvandringskategori, rowpct
+
+//legger til utdanningsnivå
+import fdb/NUDB_BU 2020-08-31 as utd
+generate utd1 = substr(utd,1,1)
+//lager kategorier
+generate utdniv = '9'
+replace utdniv = '0' if utd1 == '0'
+replace utdniv = '1' if utd1 == '1' | utd1 == '2'
+replace utdniv = '2' if utd1 == '3' | utd1 == '4' | utd1 == '5'
+replace utdniv = '3' if utd1 == '6'
+replace utdniv = '4' if utd1 == '7' | utd1 == '8'
+define-labels utdnivtxt '0' 'Ingen utdanning' '1' 'Grunnskolenivå' '2'  'Videregående grunnopplæring' '3' 'Universitets og høgskolenivå kort' '4' 'Universitets og høgskolenivå lang' '9' 'Uoppgitt el ingen utdanning'
+assign-labels utdniv utdnivtxt
+
+tabulate utdniv pendler, missing 
+tabulate utdniv pendler, missing rowpct
+tabulate utdniv pendler, missing colpct
+
+tabulate kjønn pendler utdniv, missing
+tabulate kjønn pendler utdniv, rowpct
+
+tabulate Innvandringskategori pendler utdniv, missing
+tabulate Innvandringskategori pendler utdniv, rowpct
+
+//leger til tettsted/ikke tettsted
+import fdb/BEFOLKNING_TS_KODE 2020-01-01 as tett
+
+tabulate tett pendler, missing 
+tabulate tett pendler, missing rowpct
+tabulate tett pendler, missing colpct
+
+tabulate kjønn pendler tett, missing
+tabulate kjønn pendler tett, rowpct
+
+//henter arbeidstid
+import fdb/REGSYS_ARB_ARBEIDSTID 2021-11-16 as atid
+summarize atid  
+histogram atid
+tabulate utdniv pendler, summarize(atid)
+
+//Lager prosentiler og tester inndelingen vha statistikk
+generate atidprosentil = quantile(atid, 100)
+histogram atidprosentil, discrete
+
+//Lager kvartiler og tester inndelingen vha statistikk
+generate atidkvartil = quantile(atid, 4)
+histogram atidkvartil, discrete
+
+//Tester inndelingen i prosentiler og kvartiler opp mot hverandre
+tabulate atidprosentil atidkvartil
+
+//Lager desiler og viser hhv. antall, gjennomsnittsarbeidstid og grenseverdi for hver desil
+generate atiddesil = quantile(atid, 10)
+tabulate atiddesil utdniv
+tabulate atiddesil utdniv, colpct
+tabulate atiddesil, summarize(atid)
+//tabulate atiddesil, summarize(atid) min
+
+//Gruppere atid i  intervaller
+generate atidint = 'ikke lønnstaker'
+replace atidint = '0-15' if atid > 0
+replace atidint = '15-20' if atid > 15
+replace atidint = '20-25' if atid > 20
+replace atidint = '25-30' if atid > 25
+replace atidint = '30-35' if atid > 30
+replace atidint = '35-37.5' if atid > 35
+replace atidint = 'Over 37.5' if atid > 37.50
+
+//tabeller arbeidstid og pendling
+tabulate atidint pendler, missing
+tabulate atidint pendler, colpct
+tabulate atidint pendler, summarize(atid) missing
