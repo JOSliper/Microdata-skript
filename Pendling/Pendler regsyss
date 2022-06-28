@@ -94,17 +94,26 @@ tabulate tett pendler, missing colpct
 tabulate kjønn pendler tett, missing
 tabulate kjønn pendler tett, rowpct
 
+tabulate Innvandringskategori pendler tett, missing
+tabulate Innvandringskategori pendler tett, rowpct
+
+tabulate utdniv pendler tett, missing
+tabulate utdniv pendler tett, rowpct
+
 //henter arbeidstid
 import fdb/REGSYS_ARB_ARBEIDSTID 2021-11-16 as atid
 summarize atid  
 histogram atid
 tabulate utdniv pendler, summarize(atid)
+tabulate tett pendler, summarize(atid)
+tabulate kjønn pendler, summarize(atid)
+tabulate Innvandringskategori pendler, summarize(atid)
 
-//Lager prosentiler og tester inndelingen vha statistikk
+//Lager prosentiler og tester inndelingen via statistikk
 generate atidprosentil = quantile(atid, 100)
 histogram atidprosentil, discrete
 
-//Lager kvartiler og tester inndelingen vha statistikk
+//Lager kvartiler og tester inndelingen via statistikk
 generate atidkvartil = quantile(atid, 4)
 histogram atidkvartil, discrete
 
@@ -113,8 +122,8 @@ tabulate atidprosentil atidkvartil
 
 //Lager desiler og viser hhv. antall, gjennomsnittsarbeidstid og grenseverdi for hver desil
 generate atiddesil = quantile(atid, 10)
-tabulate atiddesil utdniv
-tabulate atiddesil utdniv, colpct
+tabulate atiddesil pendler
+tabulate atiddesil pendler, colpct
 tabulate atiddesil, summarize(atid)
 //tabulate atiddesil, summarize(atid) min
 
