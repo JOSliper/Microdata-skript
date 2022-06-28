@@ -21,7 +21,8 @@ generate alder = 2021 - int (faarmnd/100)
 //keep if alder <= 60
 
 generate aldersgruppe = '0'
-replace aldersgruppe = '0-20 år' if alder > 0
+replace aldersgruppe = '0-15 år' if alder > 0
+replace aldersgruppe = '16-20 år' if alder > 16
 replace aldersgruppe = '20-29 år' if alder > 20
 replace aldersgruppe = '30-39 år' if alder > 30
 replace aldersgruppe = '40-49 år' if alder > 40
@@ -132,3 +133,4 @@ replace atidint = 'Over 37.5' if atid > 37.50
 tabulate atidint pendler, missing
 tabulate atidint pendler, colpct
 tabulate atidint pendler, summarize(atid) missing
+
