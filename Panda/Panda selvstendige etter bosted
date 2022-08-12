@@ -1,0 +1,55 @@
+require no.ssb.fdb:18 as fdb
+create-dataset Dataset
+
+//begrenser utvalget til personer som er sysselsatt og har arbeidsted i norge
+import fdb/REGSYS_ARB_ARBKOMM 2021-11-16 as arbeidsted
+
+//henter bosted 
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2022-01-01 as bosted
+generate BFylke = substr(bosted,1,2)
+generate Bkommnr = substr(bosted,1,4)
+
+//henter alder - bruker år -1 for å sikre at aldersfordelt befolkning samsvarere med tallene i statistikkbanken 
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+generate alder = 2022 - int (faarmnd/100)
+
+//lager aldersgrupper
+generate aldersgruppe = '0'
+replace aldersgruppe = '0-4 år' if alder > 0
+replace aldersgruppe = '5-9 år' if alder > 5
+replace aldersgruppe = '10-14 år' if alder > 10
+replace aldersgruppe = '15-19 år' if alder > 15
+replace aldersgruppe = '20-24 år' if alder > 20
+replace aldersgruppe = '25-29 år' if alder > 25
+replace aldersgruppe = '30-34 år' if alder > 30
+replace aldersgruppe = '35-39 år' if alder > 35
+replace aldersgruppe = '40-44 år' if alder > 40
+replace aldersgruppe = '45-49 år' if alder > 45
+replace aldersgruppe = '50-54 år' if alder > 50
+replace aldersgruppe = '55-59 år' if alder > 55
+replace aldersgruppe = '60-64 år' if alder > 60
+replace aldersgruppe = '65-69 år' if alder > 65
+replace aldersgruppe = '70-74 år' if alder > 70
+replace aldersgruppe = '75-79 år' if alder > 75
+replace aldersgruppe = '80-84 år' if alder > 80
+replace aldersgruppe = '85-89 år' if alder > 85
+replace aldersgruppe = '90-94 år' if alder > 90
+replace aldersgruppe = 'Ukjent alder' if sysmiss(faarmnd)
+
+//Legger til arbeidsmarkedstatus
+import fdb/REGSYS_ARB_ARBMARK_STATUS 2021-11-16 as arbeidsmarkedstatus
+generate KodeStatus = substr(arbeidsmarkedstatus,1,1)
+
+tabulate aldersgruppe arbeidsmarkedstatus
+
+//henter  antall lønstakere og selvstendige  per kommune
+tabulate bosted arbeidsmarkedstatus
+
+//henter aldersfordeling på lønstakere og selvstendige (sum) per kommune. Kan brukes til å lage en omregningsfakor for av selvstendige etter alder og kommune. Hvis det er for mye prikking av selvstedige etter kommune. 
+tabulate bosted aldersgruppe
+
+//begrenser utvalget til kun  selvstendige 
+keep if KodeStatus == '2'
+
+//henter aldersfordeling selvstendige per kommune
+tabulate bosted aldersgruppe
