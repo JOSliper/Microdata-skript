@@ -9,6 +9,9 @@ import fdb/BEFOLKNING_KOMMNR_FORMELL 2022-01-01 as bosted
 generate BFylke = substr(bosted,1,2)
 generate Bkommnr = substr(bosted,1,4)
 
+import fdb/BEFOLKNING_KJOENN as kjønn
+generate kodekjønn = substr(kjønn,1,1)
+
 //henter alder - bruker år -1 for å sikre at aldersfordelt befolkning samsvarere med tallene i statistikkbanken 
 import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
 generate alder = 2022 - int (faarmnd/100)
@@ -42,6 +45,10 @@ generate KodeStatus = substr(arbeidsmarkedstatus,1,1)
 
 tabulate aldersgruppe arbeidsmarkedstatus
 
+//fillter på kjønn
+//keep if kodekjønn == '1'
+//keep if kodekjønn == '2'
+
 //henter  antall lønstakere og selvstendige  per kommune
 tabulate bosted arbeidsmarkedstatus
 
@@ -53,3 +60,5 @@ keep if KodeStatus == '2'
 
 //henter aldersfordeling selvstendige per kommune
 tabulate bosted aldersgruppe
+
+
