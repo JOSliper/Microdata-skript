@@ -1,0 +1,195 @@
+require no.ssb.fdb:18 as fdb
+create-dataset data
+import fdb/REGSYS_ARB_ARBKOMM 2021-11-16 as arbeidsted
+generate fylke = substr(arbeidsted,1,2)
+generate kommnr = substr(arbeidsted,1,4)
+
+import fdb/REGSYS_ARB_YRKE_STYRK08 2021-11-16 as yrke
+generate yrke4 = substr(yrke,1,4)
+
+tabulate yrke 
+
+//Omkoder yrker - bruker først destring for å gjøre formatet om til numerisk (kreves ved recode)
+destring yrke4
+recode yrke4 (0000 = 0) (1211/1212 1330 2120 2166 2351 2411/2413 2424/2431 2511/2529 2641 2643 3311 3313 3321 3324/3331 3339 3342 3352 3513/3514 4131/4132 4313 4413 5244= 1) (1111/1120 1213/1223 1322 1341/1411 1420/2112 2114 2131/2132 2141 2144 2149/2161 2163/2164 2310 2353/2356 2421/2423 2432/2434 2611/2634 2642 2652/2654 3116/3118 3141 3154 3212 3312 3315 3322/3323 3333/3334 3341 3343 3353/3354 3422 3432/3433 3511/3512 3522/4110 4214/4221 4223 4225 4227/4312 4323/4411 4415/4416 5221 5243 7318 7321 7536 7549 9623= 2) (1321 1323/1324 1412 2113 2133 2142/2143 2145/2146 2165 2211/2212 2262/2269 2320/2342 2352 2359 2635/2636 2651 2655/2659 3115 3119 3122 3139 3212/3230 3254/3257 3259 3332 3359/3421 3423/3431 3434/3439 3521 4211/4212 4222 4224 4226 4321 4412 5112/5132 5142 5153 5164/5212 5222/5243 5245/5312 5414/5419 7133 7215 7234/7313 7316/7317 7319 7323 7512 7531/7535 7543 8151/8157 8212 9123 9321 9334/9510 9629= 3)(2162 2221/2261 3112/3114 3121 3123/3135 3142/3153 3155/3211 3240/3251 3355 4322 5111 5141 5151/5152 5163 5321/5329 5413 6111/6224  7122/7125 7131/7132 7211/7212 7214 7221/7223 7231/7232 7314/7315 7322 7412 7413 7421/7511 7513/7514 7522 7542 7544 8112 8160/8211 8219/8342  8219/8341 8343/8344 9111/9122 9129/9216 9329/9333 9611/9622= 4) (0110/0310  1311/1312 3258 3351 5411 7112/7121 7126/7127 7213 7224 7233 7411 7515 7541 8111 8113 8114/8143 8342 8350 9311/9313= 5) 
+
+define-labels kategori 0 'Uoppgitt' 1 'Veldig høy' 2 'Høy' 3 'Middels' 4 'Lav' 5 'Veldig lav ' 
+assign-labels yrke4 kategori
+// tester
+tabulate yrke yrke4
+
+tabulate yrke4, missing 
+
+tabulate arbeidsted yrke4 , missing 
+tabulate arbeidsted yrke4 , missing rowpct
+
+tabulate fylke yrke4 , missing 
+tabulate fylke yrke4 , missing rowpct
+
+//lager variabel på Veldig Høy -Høy
+clone-variables yrke4 -> VHHDummy
+destring VHHDummy
+recode VHHDummy  (0 =0) (1/2= 1) (3/5 =2)
+define-labels kategori2  0 'Uoppgitt' 1 'Veldig høy eller høy ' 2 'Middels eller lav'
+assign-labels VHHDummy kategori2
+
+tabulate arbeidsted VHHDummy, missing 
+tabulate arbeidsted VHHDummy, missing rowpct
+
+tabulate fylke VHHDummy , missing 
+tabulate fylke VHHDummy , missing rowpct
+
+//legger til bosted
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2022-01-01 as bosted
+import fdb/BEFOLKNING_KJOENN as kjønn
+generate Bfylke = substr(bosted,1,2)
+generate Bkommnr = substr(bosted,1,4)
+
+tabulate bosted VHHDummy, missing 
+tabulate bosted VHHDummy, missing rowpct
+
+tabulate Bfylke VHHDummy , missing 
+tabulate Bfylke VHHDummy , missing rowpct
+
+
+//filterer ut bare trøndelag
+keep if fylke == '50'| fylke == '16'| fylke  == '17'  | kommnr  == '1567'| kommnr  == '1571'
+
+tabulate yrke 
+tabulate yrke4, missing 
+
+tabulate arbeidsted yrke4 , missing 
+tabulate arbeidsted yrke4 , missing rowpct
+
+// Legger til kjønn
+import fdb/BEFOLKNING_KJOENN as kjønn
+tabulate yrke4 kjønn, missing 
+tabulate yrke4 kjønn, missing colpct
+
+//henter alder - bruker år -1 for å sikre at aldersfordelt befolkning samsvarere med tallene i statistikkbanken 
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+generate alder = 2021 - int (faarmnd/100)
+//keep if alder >= 20
+//keep if alder <= 66
+
+//lager aldersgrupper
+generate aldersgruppe = '0'
+replace aldersgruppe = '0-4 år' if alder > 0
+replace aldersgruppe = '5-9 år' if alder > 5
+replace aldersgruppe = '10-14 år' if alder > 10
+replace aldersgruppe = '15-19 år' if alder > 15
+replace aldersgruppe = '20-24 år' if alder > 20
+replace aldersgruppe = '25-29 år' if alder > 25
+replace aldersgruppe = '30-34 år' if alder > 30
+replace aldersgruppe = '35-39 år' if alder > 35
+replace aldersgruppe = '40-44 år' if alder > 40
+replace aldersgruppe = '45-49 år' if alder > 45
+replace aldersgruppe = '50-54 år' if alder > 50
+replace aldersgruppe = '55-59 år' if alder > 55
+replace aldersgruppe = '60-64 år' if alder > 60
+replace aldersgruppe = '65-69 år' if alder > 65
+replace aldersgruppe = '70-74 år' if alder > 70
+replace aldersgruppe = '75-79 år' if alder > 75
+replace aldersgruppe = '80-84 år' if alder > 80
+replace aldersgruppe = '85-89 år' if alder > 85
+replace aldersgruppe = '90-94 år' if alder > 90
+replace aldersgruppe = 'Ukjent alder' if sysmiss(faarmnd)
+
+tabulate aldersgruppe yrke4, missing 
+tabulate aldersgruppe yrke4, missing rowpct
+
+//legger til utdanningsnivå
+import fdb/NUDB_BU 2020-08-31 as utd
+generate utd1 = substr(utd,1,1)
+//lager kategorier
+generate utdniv = '9'
+replace utdniv = '1' if utd1 == '1' | utd1 == '2'
+replace utdniv = '2' if utd1 == '3' | utd1 == '4' | utd1 == '5'
+replace utdniv = '3' if utd1 == '6'
+replace utdniv = '4' if utd1 == '7' | utd1 == '8'
+define-labels utdnivtxt  '1' 'Grunnskolenivå' '2'  'Videregående grunnopplæring' '3' 'Universitets og høgskolenivå kort' '4' 'Universitets og høgskolenivå lang' '9' 'Uoppgitt el ingen utdanning'
+assign-labels utdniv utdnivtxt
+
+tabulate yrke4 utdniv, missing 
+tabulate yrke4 utdniv, missing colpct
+
+// Legger til Innvandringskategori
+import fdb/BEFOLKNING_INVKAT as kat
+generate Innvandringskategori = '3'
+replace Innvandringskategori = '1' if kat == 'B'
+replace Innvandringskategori = '2' if kat == 'C'
+define-labels Innvandringskategoritxt '1' 'Innvandrere' '2' 'Norskfødt med innvandrerforeldre' '3' 'Øvrig befolkning'
+assign-labels Innvandringskategori Innvandringskategoritxt
+
+tabulate  yrke4 Innvandringskategori, missing 
+tabulate  yrke4 Innvandringskategori, missing colpct
+
+tabulate  yrke4 utdniv Innvandringskategori , missing 
+tabulate  yrke4 utdniv Innvandringskategori , missing rowpct
+
+//henter arbeidstid
+import fdb/REGSYS_ARB_ARBEIDSTID 2021-11-16 as atid
+summarize atid  
+histogram atid
+tabulate yrke4 utdniv , summarize(atid)
+
+//Gruppere atid i  intervaller
+generate atidint = 'ikke lønnstaker'
+replace atidint = '0-15' if atid > 0
+replace atidint = '15-20' if atid > 15
+replace atidint = '20-25' if atid > 20
+replace atidint = '25-30' if atid > 25
+replace atidint = '30-35' if atid > 30
+replace atidint = '35-37.5' if atid > 35
+replace atidint = 'Over 37.5' if atid > 37.50
+
+tabulate atidint yrke4, missing
+tabulate atidint yrke4, rowpct
+
+//legger til inntekt
+import fdb/INNTEKT_WLONN 2020-12-31 as lonn2020
+summarize lonn2020
+histogram  lonn2020
+tabulate yrke4 utdniv , summarize(lonn2020) missing
+
+// setter de med uoppigitt lønnsinfo til 0 - slå på og av etter behov
+replace lonn2020 = 0 if sysmiss (lonn2020)
+summarize lonn2020
+histogram  lonn2020
+tabulate yrke4 utdniv , summarize(lonn2020) missing
+
+//legger til familietype
+import fdb/BEFOLKNING_REGSTAT_FAMTYP 2022-01-01 as familie
+tabulate familie yrke4, missing
+tabulate familie yrke4, rowpct missing
+tabulate familie yrke4, colpct missing
+
+generate Familkat = substr(familie,1,1)
+generate Familiegruppe = '1- Enpersonsfamilie'
+replace Familiegruppe = '2 - Familier med barn under 18 år' if Familkat == '2'
+replace Familiegruppe = '3 - Andre familier' if Familkat == '3'
+tabulate Familiegruppe yrke4, missing
+tabulate Familiegruppe yrke4, missing rowpct
+
+//legger til sivilstand
+import fdb/SIVSTANDFDT_SIVSTAND 2020-12-31 as sivilstand
+tabulate sivilstand yrke4, missing
+tabulate sivilstand yrke4, missing rowpct
+
+//legger til regioner
+//arbeidsted-Aksen-kyst-innland
+generate RegionAkseKystInnland = 99
+replace RegionAkseKystInnland = 'Aksen' if kommnr == '5001' | kommnr == '5006' | kommnr == '5028'| kommnr == '5029'| kommnr == '5031' | kommnr == '5035' |kommnr == '5036' |kommnr == '5037'| kommnr == '5038' | kommnr == '5053' |kommnr == '5059'
+replace RegionAkseKystInnland = 'Innland' if kommnr == '5021'| kommnr == '5022'| kommnr == '5025'| kommnr == '5026'| kommnr == '5027' |kommnr == '5032' | kommnr == '5033' |kommnr == '5034' |kommnr == '5041'| kommnr == '5042'| kommnr == '5043'| kommnr == '5044'| kommnr == '5045'| kommnr == '5046'| kommnr == '5047' | kommnr == '5061'
+replace RegionAkseKystInnland = 'Kyst' if kommnr == '5007' | kommnr == '5014' | kommnr == '5020'| kommnr == '5049'| kommnr == '5052'| kommnr == '5054'| kommnr == '5055'| kommnr == '5056'| kommnr == '5057'| kommnr == '5058' | kommnr == '5060'
+
+// test kommune plassering
+tabulate arbeidsted RegionAkseKystInnland, missing
+
+tabulate yrke4 RegionAkseKystInnland, missing
+tabulate yrke4 RegionAkseKystInnland, missing colpct
+
+//legger til sektor
+import fdb/REGSYS_FRTK_SEKTOR_2014 2019-11-16 as  sektor
+tabulate   sektor yrke4, missing 
+tabulate   sektor yrke4, missing rowpct
