@@ -7,7 +7,7 @@ generate kommnr = substr(arbeidsted,1,4)
 import fdb/REGSYS_ARB_YRKE_STYRK08 2021-11-16 as yrke
 generate yrke4 = substr(yrke,1,4)
 
-tabulate yrke 
+tabulate yrke, missing
 
 //Omkoder yrker - bruker først destring for å gjøre formatet om til numerisk (kreves ved recode)
 destring yrke4
@@ -16,7 +16,7 @@ recode yrke4 (0000 = 0) (1211/1212 1330 2120 2166 2351 2411/2413 2424/2431 2511/
 define-labels kategori 0 'Uoppgitt' 1 'Veldig høy' 2 'Høy' 3 'Middels' 4 'Lav' 5 'Veldig lav ' 
 assign-labels yrke4 kategori
 // tester
-tabulate yrke yrke4
+tabulate yrke yrke4, missing 
 
 tabulate yrke4, missing 
 
@@ -41,9 +41,19 @@ tabulate fylke VHHDummy , missing rowpct
 
 //legger til bosted
 import fdb/BEFOLKNING_KOMMNR_FORMELL 2022-01-01 as bosted
-import fdb/BEFOLKNING_KJOENN as kjønn
 generate Bfylke = substr(bosted,1,2)
 generate Bkommnr = substr(bosted,1,4)
+// Legger til kjønn
+import fdb/BEFOLKNING_KJOENN as kjønn
+
+//henter alder - bruker år -1 for å sikre at aldersfordelt befolkning samsvarere med tallene i statistikkbanken 
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+generate alder = 2021 - int (faarmnd/100)
+
+//aldersfiltrer (ikke i bruk)
+//keep if alder >= 20
+//keep if alder <= 66
+
 
 tabulate bosted VHHDummy, missing 
 tabulate bosted VHHDummy, missing rowpct
@@ -61,16 +71,8 @@ tabulate yrke4, missing
 tabulate arbeidsted yrke4 , missing 
 tabulate arbeidsted yrke4 , missing rowpct
 
-// Legger til kjønn
-import fdb/BEFOLKNING_KJOENN as kjønn
 tabulate yrke4 kjønn, missing 
 tabulate yrke4 kjønn, missing colpct
-
-//henter alder - bruker år -1 for å sikre at aldersfordelt befolkning samsvarere med tallene i statistikkbanken 
-import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
-generate alder = 2021 - int (faarmnd/100)
-//keep if alder >= 20
-//keep if alder <= 66
 
 //lager aldersgrupper
 generate aldersgruppe = '0'
@@ -113,6 +115,9 @@ assign-labels utdniv utdnivtxt
 tabulate yrke4 utdniv, missing 
 tabulate yrke4 utdniv, missing colpct
 
+tabulate utdniv VHHDummy , missing 
+tabulate utdniv VHHDummy , missing rowpct
+
 // Legger til Innvandringskategori
 import fdb/BEFOLKNING_INVKAT as kat
 generate Innvandringskategori = '3'
@@ -123,6 +128,9 @@ assign-labels Innvandringskategori Innvandringskategoritxt
 
 tabulate  yrke4 Innvandringskategori, missing 
 tabulate  yrke4 Innvandringskategori, missing colpct
+
+tabulate Innvandringskategori VHHDummy , missing 
+tabulate Innvandringskategori VHHDummy , missing rowpct
 
 tabulate  yrke4 utdniv Innvandringskategori , missing 
 tabulate  yrke4 utdniv Innvandringskategori , missing rowpct
@@ -191,5 +199,5 @@ tabulate yrke4 RegionAkseKystInnland, missing colpct
 
 //legger til sektor
 import fdb/REGSYS_FRTK_SEKTOR_2014 2019-11-16 as  sektor
-tabulate   sektor yrke4, missing 
-tabulate   sektor yrke4, missing rowpct
+tabulate sektor yrke4, missing 
+tabulate sektor yrke4, missing rowpct
