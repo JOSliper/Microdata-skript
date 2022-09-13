@@ -61,6 +61,21 @@ tabulate bosted VHHDummy, missing rowpct
 tabulate Bfylke VHHDummy , missing 
 tabulate Bfylke VHHDummy , missing rowpct
 
+//legger til utdanningsnivå
+import fdb/NUDB_BU 2020-08-31 as utd
+generate utd1 = substr(utd,1,1)
+//lager kategorier
+generate utdniv = '9'
+replace utdniv = '1' if utd1 == '1' | utd1 == '2'
+replace utdniv = '2' if utd1 == '3' | utd1 == '4' | utd1 == '5'
+replace utdniv = '3' if utd1 == '6'
+replace utdniv = '4' if utd1 == '7' | utd1 == '8'
+define-labels utdnivtxt  '1' 'Grunnskolenivå' '2'  'Videregående grunnopplæring' '3' 'Universitets og høgskolenivå kort' '4' 'Universitets og høgskolenivå lang' '9' 'Uoppgitt el ingen utdanning'
+assign-labels utdniv utdnivtxt
+
+tabulate utdniv VHHDummy , missing 
+tabulate utdniv VHHDummy , missing rowpct
+
 
 //filterer ut bare trøndelag
 keep if fylke == '50'| fylke == '16'| fylke  == '17'  | kommnr  == '1567'| kommnr  == '1571'
@@ -97,26 +112,21 @@ replace aldersgruppe = '85-89 år' if alder > 85
 replace aldersgruppe = '90-94 år' if alder > 90
 replace aldersgruppe = 'Ukjent alder' if sysmiss(faarmnd)
 
+//tar ut tall på aldersgruppe
 tabulate aldersgruppe yrke4, missing 
 tabulate aldersgruppe yrke4, missing rowpct
 
-//legger til utdanningsnivå
-import fdb/NUDB_BU 2020-08-31 as utd
-generate utd1 = substr(utd,1,1)
-//lager kategorier
-generate utdniv = '9'
-replace utdniv = '1' if utd1 == '1' | utd1 == '2'
-replace utdniv = '2' if utd1 == '3' | utd1 == '4' | utd1 == '5'
-replace utdniv = '3' if utd1 == '6'
-replace utdniv = '4' if utd1 == '7' | utd1 == '8'
-define-labels utdnivtxt  '1' 'Grunnskolenivå' '2'  'Videregående grunnopplæring' '3' 'Universitets og høgskolenivå kort' '4' 'Universitets og høgskolenivå lang' '9' 'Uoppgitt el ingen utdanning'
-assign-labels utdniv utdnivtxt
-
+//tar ut tall på utdanningsnivå
 tabulate yrke4 utdniv, missing 
 tabulate yrke4 utdniv, missing colpct
 
 tabulate utdniv VHHDummy , missing 
 tabulate utdniv VHHDummy , missing rowpct
+
+//tar ut tall på utdanningsnivå og kjønn 
+tabulate kjønn VHHDummy utdniv, missing 
+tabulate kjønn VHHDummy utdniv, missing rowpct
+
 
 // Legger til Innvandringskategori
 import fdb/BEFOLKNING_INVKAT as kat
@@ -134,6 +144,9 @@ tabulate Innvandringskategori VHHDummy , missing rowpct
 
 tabulate  yrke4 utdniv Innvandringskategori , missing 
 tabulate  yrke4 utdniv Innvandringskategori , missing rowpct
+
+tabulate  VHHDummy utdniv Innvandringskategori , missing 
+tabulate  VHHDummy utdniv Innvandringskategori , missing rowpct
 
 //henter arbeidstid
 import fdb/REGSYS_ARB_ARBEIDSTID 2021-11-16 as atid
@@ -156,12 +169,6 @@ tabulate atidint yrke4, rowpct
 
 //legger til inntekt
 import fdb/INNTEKT_WLONN 2020-12-31 as lonn2020
-summarize lonn2020
-histogram  lonn2020
-tabulate yrke4 utdniv , summarize(lonn2020) missing
-
-// setter de med uoppigitt lønnsinfo til 0 - slå på og av etter behov
-replace lonn2020 = 0 if sysmiss (lonn2020)
 summarize lonn2020
 histogram  lonn2020
 tabulate yrke4 utdniv , summarize(lonn2020) missing
