@@ -115,6 +115,7 @@ replace aldersgruppe = 'Ukjent alder' if sysmiss(faarmnd)
 //tar ut tall på aldersgruppe
 tabulate aldersgruppe yrke4, missing 
 tabulate aldersgruppe yrke4, missing rowpct
+tabulate aldersgruppe VHHDummy, missing 
 
 //tar ut tall på utdanningsnivå
 tabulate yrke4 utdniv, missing 
@@ -167,11 +168,37 @@ replace atidint = 'Over 37.5' if atid > 37.50
 tabulate atidint yrke4, missing
 tabulate atidint yrke4, rowpct
 
+tabulate atidint VHHDummy, missing
+tabulate atidint VHHDummy, rowpct
+tabulate atidint VHHDummy, colpct
+
 //legger til inntekt
 import fdb/INNTEKT_WLONN 2020-12-31 as lonn2020
 summarize lonn2020
 histogram  lonn2020
 tabulate yrke4 utdniv , summarize(lonn2020) missing
+tabulate VHHDummy utdniv , summarize(lonn2020) missing
+
+//legger til regioner
+//arbeidsted-Aksen-kyst-innland
+generate RegionAkseKystInnland = 99
+replace RegionAkseKystInnland = 'Aksen' if kommnr == '5001' | kommnr == '5006' | kommnr == '5028'| kommnr == '5029'| kommnr == '5031' | kommnr == '5035' |kommnr == '5036' |kommnr == '5037'| kommnr == '5038' | kommnr == '5053' |kommnr == '5059'
+replace RegionAkseKystInnland = 'Innland' if kommnr == '5021'| kommnr == '5022'| kommnr == '5025'| kommnr == '5026'| kommnr == '5027' |kommnr == '5032' | kommnr == '5033' |kommnr == '5034' |kommnr == '5041'| kommnr == '5042'| kommnr == '5043'| kommnr == '5044'| kommnr == '5045'| kommnr == '5046'| kommnr == '5047' | kommnr == '5061'
+replace RegionAkseKystInnland = 'Kyst' if kommnr == '5007' | kommnr == '5014' | kommnr == '5020'| kommnr == '5049'| kommnr == '5052'| kommnr == '5054'| kommnr == '5055'| kommnr == '5056'| kommnr == '5057'| kommnr == '5058' | kommnr == '5060'
+
+// test kommune plassering
+tabulate arbeidsted RegionAkseKystInnland, missing
+
+tabulate yrke4 RegionAkseKystInnland, missing
+tabulate yrke4 RegionAkseKystInnland, missing colpct
+
+tabulate VHHDummy RegionAkseKystInnland, missing
+tabulate VHHDummy RegionAkseKystInnland, missing colpct
+
+//legger til sektor
+import fdb/REGSYS_FRTK_SEKTOR_2014 2019-11-16 as  sektor
+tabulate sektor yrke4, missing 
+tabulate sektor yrke4, missing rowpct
 
 //legger til familietype
 import fdb/BEFOLKNING_REGSTAT_FAMTYP 2022-01-01 as familie
@@ -190,21 +217,3 @@ tabulate Familiegruppe yrke4, missing rowpct
 import fdb/SIVSTANDFDT_SIVSTAND 2020-12-31 as sivilstand
 tabulate sivilstand yrke4, missing
 tabulate sivilstand yrke4, missing rowpct
-
-//legger til regioner
-//arbeidsted-Aksen-kyst-innland
-generate RegionAkseKystInnland = 99
-replace RegionAkseKystInnland = 'Aksen' if kommnr == '5001' | kommnr == '5006' | kommnr == '5028'| kommnr == '5029'| kommnr == '5031' | kommnr == '5035' |kommnr == '5036' |kommnr == '5037'| kommnr == '5038' | kommnr == '5053' |kommnr == '5059'
-replace RegionAkseKystInnland = 'Innland' if kommnr == '5021'| kommnr == '5022'| kommnr == '5025'| kommnr == '5026'| kommnr == '5027' |kommnr == '5032' | kommnr == '5033' |kommnr == '5034' |kommnr == '5041'| kommnr == '5042'| kommnr == '5043'| kommnr == '5044'| kommnr == '5045'| kommnr == '5046'| kommnr == '5047' | kommnr == '5061'
-replace RegionAkseKystInnland = 'Kyst' if kommnr == '5007' | kommnr == '5014' | kommnr == '5020'| kommnr == '5049'| kommnr == '5052'| kommnr == '5054'| kommnr == '5055'| kommnr == '5056'| kommnr == '5057'| kommnr == '5058' | kommnr == '5060'
-
-// test kommune plassering
-tabulate arbeidsted RegionAkseKystInnland, missing
-
-tabulate yrke4 RegionAkseKystInnland, missing
-tabulate yrke4 RegionAkseKystInnland, missing colpct
-
-//legger til sektor
-import fdb/REGSYS_FRTK_SEKTOR_2014 2019-11-16 as  sektor
-tabulate sektor yrke4, missing 
-tabulate sektor yrke4, missing rowpct
