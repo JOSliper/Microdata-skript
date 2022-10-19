@@ -91,7 +91,7 @@ tabulate yrke4 kjønn, missing colpct
 
 //lager aldersgrupper
 generate aldersgruppe = '0'
-replace aldersgruppe = '0-4 år' if alder > 0
+replace aldersgruppe = '0-4 år' if alder >= 0
 replace aldersgruppe = '5-9 år' if alder > 5
 replace aldersgruppe = '10-14 år' if alder > 10
 replace aldersgruppe = '15-19 år' if alder > 15
