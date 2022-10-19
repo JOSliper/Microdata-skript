@@ -109,7 +109,7 @@ replace aldersgruppe = '70-74 år' if alder > 70
 replace aldersgruppe = '75-79 år' if alder > 75
 replace aldersgruppe = '80-84 år' if alder > 80
 replace aldersgruppe = '85-89 år' if alder > 85
-replace aldersgruppe = '90-94 år' if alder > 90
+replace aldersgruppe = '90 eller eldre år' if alder > 90
 replace aldersgruppe = 'Ukjent alder' if sysmiss(faarmnd)
 
 //tar ut tall på aldersgruppe
