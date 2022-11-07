@@ -1,0 +1,39 @@
+require no.ssb.fdb:19 as fdb
+create-dataset data
+
+//tar ut personer som står i mantallet - stemmeberetigede
+import fdb/VALG_MANNTALL_KOMMNR 2019-09-09 as mantall
+generate Vfylke = substr(mantall,1,2)
+generate Vkommnr = substr(mantall,1,4)
+
+
+//tar ut tall på fylkesnivå for å se om valgdeltagesen jeg får stemmer med statistikken fra valgdirketoratet. 
+import fdb/VALG_STEMT_SSB 2019-09-09 as stemt
+tabulate Vfylke stemt, missing
+tabulate Vfylke stemt, missing rowpct
+
+//filterer ut bare Trøndelag (ikke i bruk)
+//keep if vfylke == '50'| vfylke == '16'| vfylke  == '17'  | vkommnr  == '1567'| vkommnr  == '1571'
+
+//legger til arbeidsted for å filtrere ut kun de som har arbeid i trøndelag 
+import fdb/REGSYS_ARB_ARBKOMM 2019-11-16 as arbeidsted
+generate fylke = substr(arbeidsted,1,2)
+generate kommnr = substr(arbeidsted,1,4)
+// Legger til kjønn
+import fdb/BEFOLKNING_KJOENN as kjønn
+
+//filterer ut bare Trøndelag
+keep if fylke == '50'| fylke == '16'| fylke  == '17'  | kommnr  == '1567'| kommnr  == '1571'
+
+//henter alder - bruker år -1 for å sikre at aldersfordelt befolkning samsvarere med tallene i statistikkbanken 
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+generate alder = 2018 - int (faarmnd/100)
+
+//aldersfiltrer (ikke i bruk)
+//keep if alder >= 18
+//keep if alder <= 66
+
+
+//henter yrke og tar ut tabell på valgdeltagselse etter yrke
+import fdb/REGSYS_ARB_YRKE_STYRK08 2019-11-16 as yrke
+tabulate yrke stemt, missing
