@@ -1,0 +1,54 @@
+require no.ssb.fdb:19 as fdb
+
+//henter jobb data 
+create-dataset jobber
+import fdb/ARBLONN_ARB_ARBKOMM 2022-04-30 as arbeidsted
+import fdb/ARBLONN_ARB_YRKE_STYRK08 2022-04-16 as yrke
+import fdb/ARBLONN_ARB_HOVEDARBEID 2022-04-16 as hoved
+import fdb/ARBLONN_ARB_ARBEIDSTID 2022-04-16 as arbeidstid
+import fdb/ARBLONN_ARB_TID_ORDNING 2022-04-16 as tidsordning
+import fdb/SYKEFRAVAR_SYKEFRAVAR_DAGSVERK1 2022-04-30 as sykefra
+import fdb/SYKEFRAVAR_AVTALTE_DAGSVERK1 2022-04-30 as avtalt
+import fdb/ARBEIDSFORHOLD_PERSON as personid
+
+//henter person data 
+create-dataset personer
+import fdb/ARBLONN_PERS_KJOENN 2021-07-16 as kjønn
+merge kjønn into jobber on personid
+
+use jobber
+
+//filterer ut arbeidsted trøndelag og yrke  5321 - Helsefagarbeidere
+
+tabulate yrke kjønn , summarize(sykefra) sum freq flatten
+tabulate yrke kjønn , summarize(avtalt) sum freq flatten
+
+keep if substr(arbeidsted,1,2) == '50'
+
+tabulate yrke kjønn , summarize(sykefra) sum freq flatten
+tabulate yrke kjønn , summarize(avtalt) sum freq flatten
+
+keep if yrke == '5321'
+
+//tar ut noen tabeller
+tabulate arbeidsted hoved,missing
+tabulate arbeidsted tidsordning, missing 
+tabulate arbeidsted kjønn, missing 
+tabulate kjønn hoved, missing 
+tabulate tidsordning kjønn, missing 
+
+
+tabulate kjønn hoved, summarize(sykefra) sum freq
+tabulate kjønn hoved, summarize(sykefra) mean freq
+tabulate kjønn hoved, summarize(avtalt) sum freq
+tabulate kjønn hoved, summarize(avtalt) mean freq
+
+tabulate arbeidsted kjønn, summarize(sykefra) sum freq
+tabulate arbeidsted kjønn, summarize(sykefra) mean freq
+tabulate arbeidsted kjønn, summarize(avtalt) sum freq
+tabulate arbeidsted kjønn, summarize(avtalt) mean freq
+
+tabulate tidsordning kjønn, summarize(sykefra) sum freq flatten
+tabulate tidsordning kjønn, summarize(sykefra) mean freq
+tabulate tidsordning kjønn, summarize(avtalt) sum freq flatten
+tabulate tidsordning kjønn, summarize(avtalt) mean freq
