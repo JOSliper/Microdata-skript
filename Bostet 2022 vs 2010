@@ -1,0 +1,28 @@
+require no.ssb.fdb:19 as fdb
+create-dataset Bosted
+
+//henter befolkning i trondheim oer 1.1.2022
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2022-01-01 as bosted
+generate fylke = substr(bosted,1,2)
+generate kom = substr(bosted,1,4)
+keep if fylke == '50'
+keep if kom == '5001'
+
+//henter bosted 2010
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2010-01-01 as bosted2010
+
+// henter alder- bruker år-1 for å få tall som sammsvarer med staistikkbanken - tar vekk  de som er under 12 år. 
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+generate alder = 2021 - int (faarmnd/100)
+keep if alder >= 12
+
+//henter innvandringskategori
+import fdb/BEFOLKNING_INVKAT as kat
+generate Innvandringskategori = '3'
+replace Innvandringskategori = '1' if kat == 'B'
+replace Innvandringskategori = '2' if kat == 'C'
+define-labels Innvandringskategoritxt '1' 'Innvandrere' '2' 'Norskfødt med innvandrerforeldre' '3' 'Øvrig befolkning'
+assign-labels Innvandringskategori Innvandringskategoritxt
+
+//krysser mot Innvandringskategori for å se hvor mange av syssmiss som er innvandrer
+tabulate bosted2010 Innvandringskategori, missing
