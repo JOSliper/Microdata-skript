@@ -16,7 +16,7 @@ keep if kom == '5001'
 generate fylke2 = substr(aar16,1,2)
 
 import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
-// 2020 og ikke 2021 for å sikre at aldersfordelt befolkning samsvarere med 2021 tallene i statistikkbanken 
+// 2021 og ikke 2022 for å sikre at aldersfordelt befolkning samsvarere med 2022 tallene i statistikkbanken 
 generate alder = 2021 - int (faarmnd/100)
 
 keep if alder >= 20 
