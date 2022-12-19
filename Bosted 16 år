@@ -36,4 +36,4 @@ tabulate aar16  Innvandringskategori, missing
 tabulate alder aar16f, missing 
 
 tabulate alder  Innvandringskategori if (aar16f == '25')
-tabulate alder aar16  if (aar16kom == '1601' | aar16kom  == '1662')
+tabulate alder aar16  if (aar16 == '1601' | aar16  == '1662')
