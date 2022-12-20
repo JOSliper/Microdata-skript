@@ -36,3 +36,9 @@ define-labels vregion 0 'Norge' 1 'EU/EØS' 2 'Europeiske land utenom EU' 3 'Afr
 assign-labels fødeland vregion
 
 tabulate yrke fødeland, missing
+
+
+import fdb/BEFOLKNING_INNGRUNN1 as grunn
+
+
+tabulate  yrke grunn, missing 
