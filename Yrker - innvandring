@@ -4,7 +4,7 @@ import fdb/REGSYS_ARB_ARBKOMM 2020-11-16 as arbeidsted
 generate fylke = substr(arbeidsted,1,2)
 keep if fylke == '16'| fylke == '17' | fylke == '50'
 
-import fdb/REGSYS_ARB_YRKE_STYRK08 2016-11-16 as yrke
+import fdb/REGSYS_ARB_YRKE_STYRK08 2021-11-16 as yrke
 tabulate yrke, missing
 generate yrkenr = substr(yrke,1,4)
 
