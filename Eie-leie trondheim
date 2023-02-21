@@ -6,8 +6,8 @@ import fdb/BEFOLKNING_KOMMNR_FORMELL 2021-01-01 as bosted
 generate Bfylke = substr(bosted,1,2)
 generate Bkommnr = substr(bosted,1,4)
 keep if Bkommnr == '5001' 
-// Legger til kjønn
 
+// Legger til kjønn
 import fdb/BEFOLKNING_KJOENN as kjønn
 //henter alder - bruker år -1 for å sikre at aldersfordelt befolkning samsvarere med tallene i statistikkbanken 
 import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
