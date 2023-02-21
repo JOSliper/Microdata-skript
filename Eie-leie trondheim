@@ -1,0 +1,106 @@
+require no.ssb.fdb:19 as fdb
+create-dataset data
+
+//legger til bosted
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2021-01-01 as bosted
+generate Bfylke = substr(bosted,1,2)
+generate Bkommnr = substr(bosted,1,4)
+keep if Bkommnr == '5001' 
+// Legger til kjønn
+
+import fdb/BEFOLKNING_KJOENN as kjønn
+//henter alder - bruker år -1 for å sikre at aldersfordelt befolkning samsvarere med tallene i statistikkbanken 
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+generate alder = 2020 - int (faarmnd/100)
+
+//aldersfiltrer (ikke i bruk)
+//keep if alder >= 20
+//keep if alder <= 66
+
+import fdb/BOFORHOLD_EIE_LEIE 2021-01-01 as Eieleie
+
+tabulate Eieleie, missing
+
+tabulate kjønn Eieleie, missing
+tabulate kjønn Eieleie, missing rowpct
+
+
+import fdb/BOFORHOLD_BYGNINGSTYPE_AGGR 2021-01-01 as Boligtype
+
+tabulate Boligtype Eieleie, missing
+tabulate Boligtype Eieleie, missing rowpct
+
+//legger til utdanningsnivå
+import fdb/NUDB_BU 2020-08-31 as utd
+generate utd1 = substr(utd,1,1)
+//lager kategorier
+generate utdniv = '9'
+replace utdniv = '1' if utd1 == '1' | utd1 == '2'
+replace utdniv = '2' if utd1 == '3' | utd1 == '4' | utd1 == '5'
+replace utdniv = '3' if utd1 == '6'
+replace utdniv = '4' if utd1 == '7' | utd1 == '8'
+define-labels utdnivtxt  '1' 'Grunnskolenivå' '2'  'Videregående grunnopplæring' '3' 'Universitets og høgskolenivå kort' '4' 'Universitets og høgskolenivå lang' '9' 'Uoppgitt el ingen utdanning'
+assign-labels utdniv utdnivtxt
+
+tabulate utdniv Eieleie, missing
+tabulate utdniv Eieleie, missing rowpct
+
+//lager aldersgrupper
+generate aldersgruppe = '0'
+replace aldersgruppe = '0-4 år' if alder >= 0
+replace aldersgruppe = '5-9 år' if alder > 5
+replace aldersgruppe = '10-14 år' if alder > 10
+replace aldersgruppe = '15-19 år' if alder > 15
+replace aldersgruppe = '20-24 år' if alder > 20
+replace aldersgruppe = '25-29 år' if alder > 25
+replace aldersgruppe = '30-34 år' if alder > 30
+replace aldersgruppe = '35-39 år' if alder > 35
+replace aldersgruppe = '40-44 år' if alder > 40
+replace aldersgruppe = '45-49 år' if alder > 45
+replace aldersgruppe = '50-54 år' if alder > 50
+replace aldersgruppe = '55-59 år' if alder > 55
+replace aldersgruppe = '60-64 år' if alder > 60
+replace aldersgruppe = '65-69 år' if alder > 65
+replace aldersgruppe = '70-74 år' if alder > 70
+replace aldersgruppe = '75-79 år' if alder > 75
+replace aldersgruppe = '80-84 år' if alder > 80
+replace aldersgruppe = '85-89 år' if alder > 85
+replace aldersgruppe = '90 eller eldre år' if alder > 90
+replace aldersgruppe = 'Ukjent alder' if sysmiss(faarmnd)
+
+
+tabulate aldersgruppe Eieleie, missing
+tabulate aldersgruppe Eieleie, missing rowpct
+
+// Legger til Innvandringskategori
+import fdb/BEFOLKNING_INVKAT as kat
+generate Innvandringskategori = '3'
+replace Innvandringskategori = '1' if kat == 'B' | kat == 'C'
+define-labels Innvandringskategoritxt '1' 'Innvandrere og Norskfødt med innvandrerforeldre' '3' 'Øvrig befolkning'
+assign-labels Innvandringskategori Innvandringskategoritxt
+
+tabulate Innvandringskategori Eieleie, missing
+tabulate Innvandringskategori Eieleie, missing rowpct
+
+
+//legger til familietype
+import fdb/BEFOLKNING_REGSTAT_FAMTYP 2022-01-01 as familie
+tabulate familie Eieleie, missing
+tabulate familie Eieleie, missing rowpct
+
+generate Familkat = substr(familie,1,1)
+generate Familiegruppe = '1- Enpersonsfamilie'
+replace Familiegruppe = '2 - Familier med barn under 18 år' if Familkat == '2'
+replace Familiegruppe = '3 - Andre familier' if Familkat == '3'
+
+tabulate Familiegruppe Eieleie, missing
+tabulate Familiegruppe Eieleie, missing rowpct
+
+//.........................
+//aldersfiltrer 
+keep if alder >= 20
+keep if alder <= 66
+
+tabulate utdniv Eieleie Boligtype, missing
+tabulate utdniv Eieleie Innvandringskategori, missing
+tabulate utdniv Boligtype Innvandringskategori, missing
