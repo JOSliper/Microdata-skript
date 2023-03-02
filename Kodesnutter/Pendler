@@ -1,0 +1,13 @@
+//henter arbeidsstedskommune 
+import fdb/REGSYS_ARB_ARBKOMM 2021-11-16 as arbeidsted
+generate Akommnr = substr(arbeidsted,1,4)
+
+
+//henter bostedskommune
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2022-01-01 as bosted
+generate Bkommnr = substr(bosted,1,4)
+
+
+//lager dummy pendler
+generate pendler = 'pendler'
+replace pendler = 'Ikke pendler' if Bkommnr == Akommnr
