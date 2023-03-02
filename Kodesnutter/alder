@@ -1,0 +1,3 @@
+//henter alder - bruker år -1 for å sikre at aldersfordelt befolkning samsvarere med tallene i statistikkbanken 
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+generate alder2022 = 2021 - int (faarmnd/100)
