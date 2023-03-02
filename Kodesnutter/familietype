@@ -1,0 +1,5 @@
+//legger til familietype
+import fdb/BEFOLKNING_REGSTAT_FAMTYP 2022-01-01 as familie
+generate Familiegruppe = '1- Enpersonsfamilie'
+replace Familiegruppe = '2 - Familier med barn under 18 år' if Familkat == '2'
+replace Familiegruppe = '3 - Andre familier' if Familkat == '3'
