@@ -1,0 +1,11 @@
+//legger til grunnskolepoeng
+// kun personer som har karakter i minst 8 av 11 fag får grunnskolepoeng
+import fdb/NUDB_KURS_GRPOENG as Gpoeng
+generate Grunnpoeng = '0 eller manglende opplysninger'
+replace Grunnpoeng = '1-10' if Gpoeng > 1
+replace Grunnpoeng = '10-20' if Gpoeng > 10
+replace Grunnpoeng = '20-30' if Gpoeng > 20
+replace Grunnpoeng = '30-40' if Gpoeng > 30
+replace Grunnpoeng = '40-50' if Gpoeng > 40
+replace Grunnpoeng = '50-60' if Gpoeng > 50
+replace Grunnpoeng = 'Over 60' if Gpoeng > 60
