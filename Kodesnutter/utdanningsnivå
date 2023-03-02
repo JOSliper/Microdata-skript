@@ -1,0 +1,21 @@
+//legger til utdanningsnivå
+import fdb/NUDB_BU 2020-08-31 as utd
+generate utd1 = substr(utd,1,1)
+//lager kategorier
+generate utdniv = '9'
+replace utdniv = '1' if utd1 == '1' | utd1 == '2'
+replace utdniv = '2' if utd1 == '3' | utd1 == '4' | utd1 == '5'
+replace utdniv = '3' if utd1 == '6'
+replace utdniv = '4' if utd1 == '7' | utd1 == '8' 
+define-labels utdnivtxt '1' 'Grunnskolenivå' '2'  'Videregående grunnopplæring' '3' 'Universitets og høgskolenivå kort' '4' 'Universitets og høgskolenivå lang' '9' 'Uoppgitt el ingen utdanning'
+assign-labels utdniv utdnivtxt
+
+generate utdniv1 = '1'
+replace utdniv1 = '2' if utd1 == '1' | utd1 == '2'
+replace utdniv1 = '3' if utd1 == '3' | utd1 == '4' 
+replace utdniv1 = '4' if utd1 == '5' 
+replace utdniv1 = '5' if utd1 == '6' 
+replace utdniv1 = '6' if utd1 == '7' 
+replace utdniv1 = '7' if utd1 == '8' 
+define-labels utdniv1txt '1' 'Uoppgitt el ingen utdanning' '2' 'Grunnskolenivå' '3'  'Videregående utdanning' '4' 'Fagskole  utdanning'  '5'  'Universitets- og høgskole lavere nivå' '6'  'Universitets- og høgskole høyere nivå' '7'  'Phd'
+assign-labels utdniv1 utdniv1txt
