@@ -3,3 +3,10 @@ import fdb/BEFOLKNING_KOMMNR_FORMELL 2022-01-01 as bosted2022
 generate BFylke2022 = substr(bosted2022,1,2)
 define-labels botxt '03' 'Oslo' '11' 'Rogaland' '15' 'Møre og Romsdal' '18'	'Nordland''30''Viken' '34''Innlandet''38' 'Vestfold og Telemark''42'	'Agder''46'	'Vestland' '50''Trøndelag'	'54''Troms og Finnmark'
 assign-labels BFylke2022 botxt
+
+
+//henter personer i jobb som bor i Trøndelag
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2000-01-01 as bosted
+generate fylke = substr(bosted,1,2)
+generate kommnr = substr(bosted,1,4)
+keep if fylke == '50'| fylke == '16'| fylke  == '17'  | kommnr  == '1567'| kommnr  == '1571'
