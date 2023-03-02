@@ -1,0 +1,32 @@
+//henter arbeidstid
+import fdb/REGSYS_ARB_ARBEIDSTID 2020-11-16 as atid
+summarize atid  
+histogram atid
+
+//Lager prosentiler og tester inndelingen via statistikk
+generate atidprosentil = quantile(atid, 100)
+histogram atidprosentil, discrete
+
+//Lager kvartiler og tester inndelingen via statistikk
+generate atidkvartil = quantile(atid, 4)
+histogram atidkvartil, discrete
+
+//Tester inndelingen i prosentiler og kvartiler opp mot hverandre
+tabulate atidprosentil atidkvartil
+
+//Lager desiler og viser hhv. antall, gjennomsnittsarbeidstid og grenseverdi for hver desil
+generate atiddesil = quantile(atid, 10)
+tabulate atiddesil utdniv
+tabulate atiddesil utdniv, colpct
+tabulate atiddesil, summarize(atid)
+//tabulate atiddesil, summarize(atid) min
+
+//Gruppere atid i  intervaller
+generate atidint = 'ikke lønnstaker'
+replace atidint = '0-15' if atid > 0
+replace atidint = '15-20' if atid > 15
+replace atidint = '20-25' if atid > 20
+replace atidint = '25-30' if atid > 25
+replace atidint = '30-35' if atid > 30
+replace atidint = '35-37.5' if atid > 35
+replace atidint = 'Over 37.5' if atid > 37.50
