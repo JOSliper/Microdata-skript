@@ -1,3 +1,4 @@
+// Legger til Innvandringskategori
 import fdb/BEFOLKNING_INVKAT as kat
 generate Innvandringskategori = '3'
 replace Innvandringskategori = '1' if kat == 'B'
