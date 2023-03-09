@@ -1,4 +1,4 @@
-//henter yrke og tar ut tabell på valgdeltagselse etter yrke
+//henter yrke
 import fdb/REGSYS_ARB_YRKE_STYRK08 2021-11-16 as yrke
 
 generate yrke2 = substr(yrke,1,4)
