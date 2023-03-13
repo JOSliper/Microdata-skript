@@ -1,0 +1,5 @@
+//henter personer som jobber  i Trøndelag
+import fdb/REGSYS_ARB_ARBKOMM 2022-11-16 as arbeidsted
+generate fylke = substr(arbeidsted,1,2)
+generate kommnr = substr(arbeidsted,1,4)
+keep if fylke == '50'| fylke == '16'| fylke  == '17'  | kommnr  == '1567'| kommnr  == '1571'
