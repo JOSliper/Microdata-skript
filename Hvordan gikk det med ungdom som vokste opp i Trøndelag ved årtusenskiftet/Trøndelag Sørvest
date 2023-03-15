@@ -1,0 +1,113 @@
+require no.ssb.fdb:20 as fdb
+create-dataset Dataset
+
+//henter personer som bor i Trøndelag
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2000-01-01 as bosted
+generate fylke = substr(bosted,1,2)
+generate kommnr = substr(bosted,1,4)
+keep if fylke == '50'| fylke == '16'| fylke  == '17' | fylke == '15'
+tabulate bosted
+
+//tar ut kun Trøndelag sørvest
+keep if kommnr  == '1567' |kommnr  == '1569' |kommnr  == '1571' |kommnr  == '1612' |kommnr  == '1613' |kommnr  == '1617' |kommnr  == '1620'|kommnr  == '1621' |kommnr  == '1622'|kommnr  == '1627' |kommnr  == '1635'  |kommnr  == '1636' |kommnr  == '1638' |kommnr  == '1657' |kommnr  == '1566'
+tabulate bosted
+
+//henter alder - bruker år -1 for å sikre at aldersfordelt befolkning samsvarere med tallene i statistikkbanken 
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+generate alder = 1999 - int (faarmnd/100)
+generate alder22 = 2021 - int (faarmnd/100)
+//filterer på aldersgruppe
+keep if alder >= 10
+keep if alder <= 16
+
+tabulate bosted
+
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2022-01-01 as bosted2022
+generate BFylke2022 = substr(bosted2022,1,2)
+generate kommnr2022 = substr(bosted2022,1,4)
+define-labels botxt '03' 'Oslo' '11' 'Rogaland' '15' 'Møre og Romsdal' '18'	'Nordland''30''Viken' '34''Innlandet''38' 'Vestfold og Telemark''42'	'Agder''46'	'Vestland' '50''Trøndelag'	'54''Troms og Finnmark'
+assign-labels BFylke2022 botxt
+
+//lager grupper
+generate bostedsgruppe2022 = '05- Resten av Norge'
+replace bostedsgruppe2022 = '04 -Resten av Møre og Romsdal ' if BFylke2022 == '15' 
+replace bostedsgruppe2022 = '03 -Resten av Trøndelag ' if BFylke2022 == '50' 
+replace bostedsgruppe2022 = '02- Trondheim' if kommnr2022 == '5001' 
+replace bostedsgruppe2022 = '01- Trøndelag sørvest' if kommnr2022 == '1566' |kommnr2022 == '1576'|kommnr2022 == '5014' |kommnr2022 == '5022'|kommnr2022 == '5029'|kommnr2022 == '5055' |kommnr2022 == '5056' |kommnr2022 == '5057' |kommnr2022 == '5059' |kommnr2022 == '5061'
+replace bostedsgruppe2022 = '06 Død eller utvandret' if sysmiss(bosted2022)
+
+
+tabulate bosted bostedsgruppe2022, missing
+
+sankey bosted bostedsgruppe2022
+
+// Legger til kjønn
+import fdb/BEFOLKNING_KJOENN as kjønn
+tabulate  bostedsgruppe2022 kjønn, missing
+
+//legger til utdanningsnivå
+import fdb/NUDB_BU 2021-08-01 as utd
+generate utd1 = substr(utd,1,1)
+//lager kategorier
+generate utdniv = '9'
+replace utdniv = '1' if utd1 == '1' | utd1 == '2'
+replace utdniv = '2' if utd1 == '3' | utd1 == '4' | utd1 == '5'
+replace utdniv = '3' if utd1 == '6'
+replace utdniv = '4' if utd1 == '7' | utd1 == '8' 
+define-labels utdnivtxt '1' 'Grunnskolenivå' '2'  'Videregående grunnopplæring' '3' 'Universitets og høgskolenivå kort' '4' 'Universitets og høgskolenivå lang' '9' 'Uoppgitt el ingen utdanning'
+assign-labels utdniv utdnivtxt
+
+generate utdniv1 = '1'
+replace utdniv1 = '2' if utd1 == '1' | utd1 == '2'
+replace utdniv1 = '3' if utd1 == '3' | utd1 == '4' 
+replace utdniv1 = '4' if utd1 == '5' 
+replace utdniv1 = '5' if utd1 == '6' 
+replace utdniv1 = '6' if utd1 == '7' 
+replace utdniv1 = '7' if utd1 == '8' 
+define-labels utdniv1txt '1' 'Uoppgitt el ingen utdanning' '2' 'Grunnskolenivå' '3'  'Videregående utdanning' '4' 'Fagskole  utdanning'  '5'  'Universitets- og høgskole lavere nivå' '6'  'Universitets- og høgskole høyere nivå' '7'  'Phd'
+assign-labels utdniv1 utdniv1txt
+
+tabulate utdniv bosted, missing
+
+tabulate utdniv bostedsgruppe2022, missing
+
+sankey bosted utdniv 
+sankey utdniv  bostedsgruppe2022
+
+//leger til sosial bakgrunn
+import fdb/NUDB_SOSBAK as Sosialbakgrunn
+
+tabulate Sosialbakgrunn utdniv, missing
+tabulate kjønn utdniv, missing
+
+//Legger til yrkesstatus
+import fdb/REGSYS_ARB_ARBMARK_STATUS 2021-11-16 as yrkstat
+
+tabulate yrkstat, missing
+tabulate utdniv yrkstat, missing 
+tabulate utdniv yrkstat, missing rowpct
+tabulate yrkstat bostedsgruppe2022, missing
+tabulate yrkstat Sosialbakgrunn, missing
+
+//henter yrke og tar ut tabell på valgdeltagselse etter yrke
+import fdb/REGSYS_ARB_YRKE_STYRK08 2021-11-16 as yrke
+
+tabulate yrke utdniv, missing
+
+generate yrke2 = substr(yrke,1,4)
+destring yrke2
+
+//recode  til NAV yrkesgruppering - Hovedgruppe
+recode yrke2 (1111 1112 1114 1120 1211 1212 1213 1219 1220 1221 1222 1223 = 1 'Ledere') (2111 2112 2113 2114 2120 2131 2132 2133 1330 2166 2511 2512 2513 2514 2519 2521 2522 2523 2529 3511 3512 3513 3514 3521 3522 2141 2142 2143 2144 2145 2146 2149 2151 2152 2153 2161 2162 2164 2165 3112 3113 3114 3115 3116 3117 3118 3119 3141 3142 3143 3155 3212 = 2 'Ingeniør- og ikt-fag') (2342 2341 2320 2330 2310 2351 2352 2353 2354 2355 2356 2359 5165 1341 1345 = 3 'Undervisning') (2422 2432 2622 2642 2631 2632 2611 2612 2619 2421 2423 2424 2621 2633 2634 2636 = 4 'Akademiske yrker') (2211 2212 2250 2261 2262 2265 2221 2222 2223 2224 2635 3353 3412 5321 5322 5329 2263 2264 2266 2267 2269 3211 3213 3230 3240 3251 3254 3256 3257 3258 3259 1342 1343 1344 = 5 'Helse, pleie og omsorg') (5312 5311 1346 2431 2433 2434 3321 3323 3333 3311 3315 3324 3331 3334 2411 2412 2413 3312 3313 = 6 'Barne- og ungdomsarbeid') (3354 3359 3342 3343 3352 4110 4214 4311 4312 4313 4413 4415 4416 4321 4322 4323 4222 4223 4224 4225 4226 3332 3339 3341 4131 4132 4211 4213 4227 4229 4411 4412 = 7 'Kontorarbeid') (5221 5222 5223 9334 1420 3322 5211 5212 5230 5242 5243 5244 5245 5246 5249 = 8 'Butikk- og salgsarbeid') (1311 1312 6111 6112 6113 6114 6121 6122 6123 6129 6130 6210 6221 6222 6224 8341 9211 9212 9213 9214 9215 9216 = 9 'Jordbruk, skogbruk og fiske') (7126 7115 7411 3123 7112 7114 7119 7121 7122 7123 7124 7125 7127 7131 7132 7133 7542 8342 8343 8344 9312 9313 1323 = 10 'Bygg og anlegg') (7231 7232 7233 7234 3121 3122 3131 3132 3133 3134 3135 3139 8111 8112 8113 8114 8121 8122 8131 8132 8141 8142 8143 8151 8152 8153 8154 8155 8156 8157 8159 8171 8172 8181 8182 8189 7511 7512 7513 7514 7515 8160 8183 7412 7413 7421 7422 8211 8212 8219 3214 7113 7221 7222 7311 7312 7313 7314 7315 7316 7317 7318 7319 7321 7322 7323 7522 7531 7532 7534 7535 7536 7543 7544 7549 9311 9321 9329 9333 7211 7212 7213 7214 7215 7223 7224 1321 1322 = 11 'Industriarbeid') (3151 3152 8350 3153 3154 8322 8311 8312 8331 8332 4221 5113 5111 5112 3434 5120 5131 5132 9412 1324 1411 1412 = 12 'Reiseliv og transport') (110 210 310 3351 3355 5411 5413 5141 5142 5151 5152 9111 9112 9122 9123 9129 5153 5414 5419 1349 1439 2163 3411 3413 4212 5161 5163 5164 5169 7541 9331 9510 9611 9612 9613 9621 9622 9623 9629 1431 2641 2643 2651 2652 2653 2654 2655 2656 2659 3421 3422 3423 3431 3432 3433 3439 5241 = 13 'Serviceyrker og annet arbeid') (9999 = 15 'Restgruppe') (0 = 14 'Ingen yrkesbakgrunn eller uoppgitt')
+
+tabulate yrke2 utdniv, missing
+sankey utdniv yrke2 
+tabulate yrke2 yrkstat, missing
+tabulate yrke2 bostedsgruppe2022, missing
+
+//legger til inntekt 
+import fdb/INNTEKT_WSAMINNT 2021-12-31 as inntekt
+
+summarize inntekt
+tabulate yrke2 bostedsgruppe2022, summarize(inntekt)
+tabulate yrke2 utdniv, summarize(inntekt)
