@@ -1,0 +1,52 @@
+require no.ssb.fdb:20 as fdb
+create-dataset Dataset
+
+//henter personer som jobber  i Trøndelag
+import fdb/REGSYS_ARB_ARBKOMM 2021-11-16 as arbeidsted
+generate fylke = substr(arbeidsted,1,2)
+generate kommnr = substr(arbeidsted,1,4)
+keep if fylke == '50'| fylke == '16'| fylke  == '17'  | kommnr  == '1567'| kommnr  == '1571'
+
+tabulate arbeidsted
+
+//tar ut kun namdalen 
+//keep if kommnr == '5007' |kommnr == '5042'|kommnr == '5043' |kommnr == '5044' |kommnr == '5045'|kommnr == '5046' |kommnr == '5047' |kommnr == '5049' |kommnr == '5060' |kommnr == '5052'
+
+//tar ut kun fosen 
+//keep if kommnr == '5054' |kommnr == '5057'|kommnr == '5058' |kommnr == '5020'
+
+tabulate arbeidsted
+
+//henter yrke
+import fdb/REGSYS_ARB_YRKE_STYRK08 2021-11-16 as yrke
+
+//legger til utdanningsnivå
+import fdb/NUDB_BU 2021-08-01 as utd
+generate utd1 = substr(utd,1,1)
+//lager kategorier
+generate utdniv = '9'
+replace utdniv = '1' if utd1 == '1' | utd1 == '2'
+replace utdniv = '2' if utd1 == '3' | utd1 == '4' | utd1 == '5'
+replace utdniv = '3' if utd1 == '6'
+replace utdniv = '4' if utd1 == '7' | utd1 == '8' 
+define-labels utdnivtxt '1' 'Grunnskolenivå' '2'  'Videregående grunnopplæring' '3' 'Universitets og høgskolenivå kort' '4' 'Universitets og høgskolenivå lang' '9' 'Uoppgitt el ingen utdanning'
+assign-labels utdniv utdnivtxt
+
+generate utdniv1 = '1'
+replace utdniv1 = '2' if utd1 == '1' | utd1 == '2'
+replace utdniv1 = '3' if utd1 == '3' | utd1 == '4' 
+replace utdniv1 = '4' if utd1 == '5' 
+replace utdniv1 = '5' if utd1 == '6' 
+replace utdniv1 = '6' if utd1 == '7' 
+replace utdniv1 = '7' if utd1 == '8' 
+define-labels utdniv1txt '1' 'Uoppgitt el ingen utdanning' '2' 'Grunnskolenivå' '3'  'Videregående utdanning' '4' 'Fagskole  utdanning'  '5'  'Universitets- og høgskole lavere nivå' '6'  'Universitets- og høgskole høyere nivå' '7'  'Phd'
+assign-labels utdniv1 utdniv1txt
+
+tabulate yrke  utdniv1, missing
+
+
+//lager grupper
+generate Utdanning2 = 'Resten'
+replace Utdanning2 = 'Fagskole og UH ' if utd1 == '5' | utd1 == '6' | utd1 == '7'  | utd1 == '8' 
+
+tabulate yrke  Utdanning2, missing
