@@ -1,11 +1,11 @@
-require no.ssb.fdb:20 as fdb
+require no.ssb.fdb:21 as fdb
 create-dataset Dataset
 
 //henter personer som bodde  i Trøndelag eller Nordland når de var 16 år
 import fdb/NUDB_KOMM_16 as bosted16
 generate fylke = substr(bosted16,1,2)
 generate kommnr = substr(bosted16,1,4)
-keep if fylke == '50'| fylke == '16'| fylke  == '17'  | kommnr  == '1567'| kommnr  == '1571' | fylke == '18'
+keep if fylke == '50'| fylke == '16'| fylke  == '17'  | kommnr  == '1567'| kommnr  == '1571' | fylke == '18' 
 
 //lager kategorier Nordland og Trøndelag
 generate Sted = 'Trøndelag'
@@ -24,7 +24,7 @@ generate Startår_VGS = substr(var1,1,4)
 destring Startår_VGS
 //keep if Startår_VGS > 2015 
 
-tabulate Startår_VGS Sted if Startår_VGS > 2015, missing
+tabulate Startår_VGS Sted if Startår_VGS >= 2015, missing
 
 //legger til og skjekker befolkningstatus
 import fdb/BEFOLKNING_STATUSKODE 2021-01-01 as status
@@ -46,8 +46,8 @@ destring Fullført_VGS_1
 tabulate Fullført_VGS_1 Fullført_VGS if Startår_VGS >= 2015, missing
 
 
-//beholder kun de som har fullført VGS etter 2012
-keep if Fullført_VGS>= 2012 
+//beholder kun de som har fullført VGS etter 2015
+keep if Fullført_VGS>= 2015 
 tabulate Fullført_VGS  Sted, missing
 tabulate Sted Fullført_VGS  kjønn, missing
 
@@ -64,8 +64,9 @@ tabulate Sted Fullført_VGS_A  kjønn, missing
 tabulate Sted Fullført_VGS_Y  kjønn, missing
 
 tabulate Sted Fullført_VGS_A Fullført_VGS_Y, missing
-tabulate  Fullført_VGS_A Fullført_VGS_Y if Sted == 'Trøndelag', missing
-tabulate  Fullført_VGS_A Fullført_VGS_Y if Sted == 'Trøndelag', summarize(alder)
+tabulate  Fullført_VGS_Y Fullført_VGS_A if Sted == 'Trøndelag', missing
+//merk at alder her er alder i 2023
+tabulate  Fullført_VGS_Y Fullført_VGS_A if Sted == 'Trøndelag', summarize(alder)
 
 //henter Årstall første gang registrert i høyere utdanning
 import fdb/NUDB_AAR_FORSTE_REG_UH as  var3
@@ -74,12 +75,22 @@ destring StartUH
 
 tabulate Sted Fullført_VGS StartUH, missing
 
-
 //rekoder missing til 9999  og tar ut kun missing + de som har startet på Uh etter 2012- fjerner altså folk som først har fullført VGS etter at de har startet på UH
 recode StartUH (missing = 9999)
-keep if StartUH>= 2012 
+keep if StartUH>= 2015
 
 tabulate Sted Fullført_VGS StartUH, missing
+
+//tar vekk de med start Uh før fullført VGS
+keep if StartUH >= Fullført_VGS
+
+tabulate Sted Fullført_VGS StartUH, missing
+
+tabulate Sted Fullført_VGS StartUH if Sted == 'Trøndelag', missing
+tabulate Sted Fullført_VGS StartUH if Sted == 'Nordland', missing
+
+tabulate kjønn Fullført_VGS StartUH if kjønn == '1', missing
+tabulate kjønn Fullført_VGS StartUH if kjønn == '2', missing
 
 //henter Alder ved utgangen av det kalenderåret personen første gang er registrert i høyere utdanning
 import fdb/NUDB_ALDER_FORSTE_REG_UH as alderUH
@@ -88,8 +99,16 @@ tabulate Sted Fullført_VGS StartUH, summarize(alderUH)
 tabulate Sted Fullført_VGS, summarize(alderUH)
 
 tabulate Sted Fullført_VGS_A StartUH  , missing
+tabulate Sted Fullført_VGS_Y StartUH  , missing
 
-tabulate  Sted Fullført_VGS_A StartUH if Fullført_VGS_A >= 2012, missing
+tabulate Sted Fullført_VGS
+tabulate Sted Fullført_VGS_A
+tabulate Sted Fullført_VGS_Y
+
+tabulate  Sted Fullført_VGS_A StartUH if Fullført_VGS_A >= 2015, missing
+
+tabulate  kjønn Fullført_VGS_A StartUH if Fullført_VGS_A >= 2015
+tabulate kjønn Fullført_VGS_A
 
 //reduserer utvalget til kun de som har missing på startår på høyere utdanning for å se på de 
 keep if StartUH== 9999
@@ -101,10 +120,11 @@ generate utd1 = substr(utd,1,1)
 //lager kategorier
 generate utdniv = '9'
 replace utdniv = '1' if utd1 == '1' | utd1 == '2'
-replace utdniv = '2' if utd1 == '3' | utd1 == '4' | utd1 == '5'
+replace utdniv = '2' if utd1 == '3' | utd1 == '4' 
+replace utdniv = '2.1' if utd1 == '5'
 replace utdniv = '3' if utd1 == '6'
 replace utdniv = '4' if utd1 == '7' | utd1 == '8' 
-define-labels utdnivtxt '1' 'Grunnskolenivå' '2'  'Videregående grunnopplæring' '3' 'Universitets og høgskolenivå kort' '4' 'Universitets og høgskolenivå lang' '9' 'Uoppgitt el ingen utdanning'
+define-labels utdnivtxt '1' 'Grunnskolenivå' '2'  'Videregående grunnopplæring' '2.1'  'Fagskole utdanning''3' 'Universitets og høgskolenivå kort' '4' 'Universitets og høgskolenivå lang' '9' 'Uoppgitt el ingen utdanning'
 assign-labels utdniv utdnivtxt
 
 tabulate Sted Fullført_VGS utdniv, missing
@@ -112,13 +132,21 @@ tabulate Sted Fullført_VGS utdniv, missing
 tabulate utd Fullført_VGS if Sted == 'Trøndelag', missing
 tabulate utd Fullført_VGS if Sted == 'Nordland', missing
 
-//se på denne senere 
-//import fdb/NUDB_KURS_KOMP 2021-08-01 as komp
+generate utdkode2 = substr(utd,1,2)
+
+tabulate  utd Fullført_VGS  if utdkode2 == '40',  missing
+tabulate  utd Fullført_VGS  if utdkode2 == '41',  missing
 
 //Legger til yrkesstatus
 import fdb/REGSYS_ARB_ARBMARK_STATUS 2021-11-16 as yrkstat
 tabulate Sted Fullført_VGS yrkstat, missing
 tabulate Sted yrkstat, missing
+tabulate Sted Fullført_VGS, missing
+
+
+tabulate kjønn Fullført_VGS yrkstat
+tabulate kjønn yrkstat
+tabulate kjønn Fullført_VGS 
 
 //henter yrke per 4. kvartal 2021
 import fdb/REGSYS_ARB_YRKE_STYRK08 2021-11-16 as yrke
