@@ -1,0 +1,63 @@
+//merk dette er en tulle analyse - for å vise hvor sære koblinger som kan gjøre med microdata
+
+require no.ssb.fdb:19 as fdb
+create-dataset data
+
+import fdb/KJORETOY_KJORETOYID_FNR 2021-12-31 as id
+import fdb/KJORETOY_KJT_GRUP 2021-12-31 as BilTYPE
+import fdb/KJORETOY_DRIVSTOFF_OMK 2021-12-31 as Drivstof
+
+
+create-dataset personer
+
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2022-01-01 as bosted
+import fdb/BEFOLKNING_KJOENN as kjønn
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+
+//bruker år -1 for å få sammsvar med alder i statistikkbankken 
+generate alder = 2021 - int (faarmnd/100)
+
+//legger til utdanningsnivå
+import fdb/NUDB_BU 2020-08-31 as utd
+generate utd1 = substr(utd,1,1)
+//lager kategorier
+generate utdniv = '9'
+replace utdniv = '1' if utd1 == '1' | utd1 == '2'
+replace utdniv = '2' if utd1 == '3' | utd1 == '4' | utd1 == '5'
+replace utdniv = '3' if utd1 == '6'
+replace utdniv = '4' if utd1 == '7' | utd1 == '8'
+define-labels utdnivtxt  '1' 'Grunnskolenivå' '2'  'Videregående grunnopplæring' '3' 'Universitets og høgskolenivå kort' '4' 'Universitets og høgskolenivå lang' '9' 'Uoppgitt el ingen utdanning'
+assign-labels utdniv utdnivtxt
+
+//henter sidemålskarakter
+import fdb/NUDB_GS_STP_NOS  as sidemål
+
+merge bosted kjønn alder utdniv sidemål into data on id
+
+use data
+
+generate fylke = substr(bosted,1,2)
+generate kommnr = substr(bosted,1,4)
+keep if fylke == '50'| fylke == '16'| fylke  == '17'  | kommnr  == '1567'| kommnr  == '1571'
+
+//tar ut kun personbiler
+keep if BilTYPE =='101'
+tabulate  Drivstof , missing
+
+// tar ut kun de med eiere mellom 30-35 år 
+keep if alder >= 30
+keep if alder <= 35
+
+tabulate  Drivstof utdniv, missing
+tabulate  Drivstof utdniv, missing rowpct
+
+//tar ut kun de med  høyere utdanning
+keep if utdniv =='3' |utdniv == '4'
+
+tabulate  Drivstof sidemål, missing
+tabulate  Drivstof sidemål, rowpct
+
+tabulate Drivstof sidemål kjønn, missing
+tabulate Drivstof sidemål kjønn, rowpct
+
+tabulate  sidemål kjønn, colpct
