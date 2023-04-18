@@ -16,8 +16,6 @@ tabulate atidprosentil atidkvartil
 
 //Lager desiler og viser hhv. antall, gjennomsnittsarbeidstid og grenseverdi for hver desil
 generate atiddesil = quantile(atid, 10)
-tabulate atiddesil utdniv
-tabulate atiddesil utdniv, colpct
 tabulate atiddesil, summarize(atid)
 //tabulate atiddesil, summarize(atid) min
 
