@@ -1,0 +1,138 @@
+require no.ssb.fdb:21 as fdb
+//Lager datasett med relevant hendelsesvariabel og definerer måleperiode
+create-dataset Bostedsstatus
+import-event fdb/BOSATTEFDT_BOSTED 2000-01-01 to 2021-12-31 as Bstatus
+generate BSfylke = substr(Bstatus,1,2)
+generate BSkommnr = substr(Bstatus,1,4)
+
+//Beholder alle hendelser hvor personer ikke har bodd i Trøndelag  og dato >= 2010
+generate Sted = 'Ikke Trøndelag'
+replace Sted = 'Trøndelag' if BSfylke == '50'| BSfylke == '16'| BSfylke  == '17'  | BSfylke  == '1567'| BSfylke  == '1571'
+
+keep if Sted == 'Ikke Trøndelag' & START@Bstatus > date(2000,01,01)
+
+//Trekker ut første forekomst av hendelse og aggregerer opp til individnivå
+collapse (min) START@Bstatus, by(PERSONID_1)
+
+//utvider utvalget mer personer som bodde i Trøndelag per 1.1.2000, men ikke har bodde i andre fylker 
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2000-01-01 as bosted2000, outer_join
+generate fylke = substr(bosted2000,1,2)
+generate kommnr = substr(bosted2000,1,4)
+keep if fylke == '50'| fylke == '16'| fylke  == '17'  | kommnr  == '1567'| kommnr  == '1571'
+
+//henter alder - bruker år -1 for å sikre at aldersfordelt befolkning samsvarere med tallene i statistikkbanken  -
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+generate alder = 1999 - int (faarmnd/100)
+//filterer på aldersgruppe - begrenser utvalget til de som var 10-16 år i 2000
+keep if alder >= 10
+keep if alder <= 16
+
+//tar vekk de som har død eller utvandrett i løpet av perioden 
+import fdb/BEFOLKNING_STATUSKODE 2021-01-01 as status
+keep if status == '1'
+
+//legger til kjønn 
+import fdb/BEFOLKNING_KJOENN as kjønn
+tabulate bosted2000 kjønn, missing
+
+//Beregner antall dager fra start på måleperiode til første gang hendelse skjer
+generate dager = START@Bstatus - date(2000,01,01)
+replace dager = 0 if dager < 0
+summarize dager
+histogram dager
+
+//Lager variabelen hendelse som tar verdien 1 for alle med verdi på antall dager. De som ikke har verdi for antall dager eller som har hendelsesdato etter at måleperioden er passert, får verdien 0 
+generate hendelse = 1 if sysmiss(dager) == 0
+replace hendelse = 0 if sysmiss(dager) | START@Bstatus > date(2021,12,31)
+
+//Setter antall dager til maksverdi for personer der hendelsen ikke har skjedd i løpet av måleperioden. Dette er altså personer som har gått gjennom hele måleperioden uten at hendelsen har skjedd. Disse får dessuten hendelse = 0 satt gjennom steget over
+replace dager = date(2021,12,31) - date(2000,01,01) if sysmiss(dager)
+tabulate hendelse, summarize(dager) mean freq
+
+//Lager en årsvariabel for å kunne bruke antall år i stedet for antall dager
+generate år = int(dager/365.24)
+histogram år, discrete
+summarize år hendelse
+histogram dager
+
+//kaplan-meier total 
+kaplan-meier hendelse år
+kaplan-meier hendelse dager
+
+//kaplan-meier etter kjønn
+kaplan-meier hendelse år, by(kjønn)
+kaplan-meier hendelse dager, by(kjønn)
+
+//kaplan-meier etter alder
+kaplan-meier hendelse år, by(alder)
+kaplan-meier hendelse dager, by(alder)
+
+//legger til utdanningsnivå per 
+import fdb/NUDB_BU 2021-08-01 as utd
+generate utd1 = substr(utd,1,1)
+
+tabulate utd1, missing
+//lager kategorier - tar en kjapp en og legger missing inn sammen med siden det er så få  grunnskole
+generate utdniv = '1'
+replace utdniv = '1' if utd1 == '1' | utd1 == '2'
+replace utdniv = '2' if utd1 == '3' | utd1 == '4' | utd1 == '5'
+replace utdniv = '3' if utd1 == '6'
+replace utdniv = '4' if utd1 == '7' | utd1 == '8' 
+define-labels utdnivtxt '1' 'Grunnskole' '2'  'Videregående ' '3' 'UH-kort' '4' 'UH-lang' 
+assign-labels utdniv utdnivtxt
+
+//kaplan-meier etter utdanningsnivå
+kaplan-meier hendelse år , by(utdniv)
+kaplan-meier hendelse dager , by(utdniv) 
+
+//legger til sosial bakgrunn
+import fdb/NUDB_SOSBAK as Sosialbakgrunn
+generate Bkode = substr(Sosialbakgrunn,1,1)
+define-labels Bkodetxt '1' 'Lang høyere' '2'  'Kort høyere ' '3' 'Videregående' '4' 'Grunnskole' '9' 'Uoppgitt' 
+assign-labels Bkode Bkodetxt
+
+//kaplan-meier etter sosial bakgrunn
+kaplan-meier hendelse år, by(Bkode)
+kaplan-meier hendelse dager, by(Bkode)
+
+//legger til arbeidsmarkedsstatus
+import fdb/REGSYS_ARB_ARBMARK_STATUS 2021-11-16 as yrkstat
+generate sysselsatt = 'Ikke sysselsatt'
+replace sysselsatt = 'Sysselsatt' if yrkstat == '' | yrkstat == '2'
+
+kaplan-meier hendelse år, by(sysselsatt)
+kaplan-meier hendelse dager, by(sysselsatt)
+
+//bosted 2000
+generate B2000 = '02- Resten av Trøndelag'
+replace B2000 = '01- Trondheim' if kommnr == '1601' | kommnr  == '1662'
+
+kaplan-meier hendelse år, by(B2000)
+kaplan-meier hendelse dager, by(B2000)
+
+kaplan-meier hendelse år if utdniv =='1', by(B2000)
+kaplan-meier hendelse dager if utdniv =='1', by(B2000)
+
+kaplan-meier hendelse år if utdniv =='2', by(B2000)
+kaplan-meier hendelse dager if utdniv =='2', by(B2000)
+
+kaplan-meier hendelse år if utdniv =='3', by(B2000)
+kaplan-meier hendelse dager if utdniv =='3', by(B2000)
+
+kaplan-meier hendelse år if utdniv =='4', by(B2000)
+kaplan-meier hendelse dager if utdniv =='4', by(B2000)
+
+//legger til grunnskolepoeng
+// kun personer som har karakter i minst 8 av 11 fag får grunnskolepoeng
+import fdb/NUDB_KURS_GRPOENG as Gpoeng
+generate Grunnpoeng = '0 eller manglende opplysninger'
+replace Grunnpoeng = '1-10' if Gpoeng > 1
+replace Grunnpoeng = '10-20' if Gpoeng > 10
+replace Grunnpoeng = '20-30' if Gpoeng > 20
+replace Grunnpoeng = '30-40' if Gpoeng > 30
+replace Grunnpoeng = '40-50' if Gpoeng > 40
+replace Grunnpoeng = '50-60' if Gpoeng > 50
+replace Grunnpoeng = 'Over 60' if Gpoeng > 60
+
+kaplan-meier hendelse år, by(Grunnpoeng)
+kaplan-meier hendelse dager, by(Grunnpoeng)
