@@ -1,3 +1,8 @@
+//henter fødselstidspunkt
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+//lager alder i 2022 - bruker år -1 for å sikre at aldersfordelt befolkning samsvarere med tallene i statistikkbanken 
+generate alder = 2021 - int (faarmnd/100)
+
 //lager aldersgrupper 5 årsgrupper
 generate aldersgruppe = '0'
 replace aldersgruppe = '0-4 år' if alder >= 0
