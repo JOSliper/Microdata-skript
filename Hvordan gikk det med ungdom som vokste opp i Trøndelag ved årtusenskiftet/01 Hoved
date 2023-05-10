@@ -73,6 +73,12 @@ define-labels Innvandringskategoritxt '1' 'Innvandrere' '2' 'Norskfødt med innv
 assign-labels Innvandringskategori Innvandringskategoritxt
 
 import fdb/NUDB_SOSBAK as Sosialbakgrunn
+generate Bkode = '9 Uoppgitt' 
+replace Bkode = '4 Lang høyere' if Sosialbakgrunn == '1'
+replace Bkode = '3 Kort høyere'  if Sosialbakgrunn == '2'
+replace Bkode = '2 Videregående'   if Sosialbakgrunn == '3'
+replace Bkode = '1 Grunnskole'   if Sosialbakgrunn == '4'
+
 
 tabulate Sosialbakgrunn kjønn, missing
 tabulate Sosialbakgrunn kjønn, colpct
@@ -95,8 +101,9 @@ tabulate utdniv status, missing
 tabulate Innvandringskategori status, missing
 
 
-//tabell til sankey1
+//tabell til å lage sankey i powerbi
 tabulate trønder Trondheim2000 Trondheim2022 status, missing
+
 
 tabulate bosted bostedsgruppe2022, missing
 sankey Trondheim2000 bostedsgruppe2022
@@ -126,6 +133,7 @@ sankey tett2000 tett2020
 //tabeller utdanningsnivå 2021-08-01
 tabulate utdniv , missing 
 sankey utdniv BFylke2022 if trønder =='Nei'
+sankey Bkode utdniv  
 
 
 tabulate utd, missing
@@ -142,11 +150,31 @@ tabulate Sosialbakgrunn utdniv, missing
 tabulate trønder utdniv Sosialbakgrunn, missing
 tabulate trønder utdniv, missing
 
+//legger til sivilstand
+import fdb/SIVSTANDFDT_SIVSTAND 2021-12-31 as SIVSTAND 
+tabulate SIVSTAND kjønn, missing
+
+//legger til familietype
+import fdb/BEFOLKNING_REGSTAT_FAMTYP 2022-01-01 as familie
+generate Familkat  = substr(familie,1,1)
+generate Familiegruppe = '9- ukjent'
+replace Familiegruppe ='1- Enpersonsfamilie' if Familkat == '1'
+replace Familiegruppe = '2 - Familier med barn under 18 år' if Familkat == '2'
+replace Familiegruppe = '3 - Andre familier' if Familkat == '3'
+tabulate Familiegruppe kjønn, missing
+tabulate familie kjønn, missing
+
 //Legger til yrkesstatus
 import fdb/REGSYS_ARB_ARBMARK_STATUS 2021-11-16 as yrkstat
 
-tabulate yrkstat, missing
+tabulate yrkstat kjønn, missing
 tabulate utdniv yrkstat, missing 
+tabulate Sosialbakgrunn yrkstat, missing 
+tabulate  Trondheim2000 yrkstat, missing 
+
+tabulate utdniv yrkstat, missing rowpct
+tabulate Sosialbakgrunn yrkstat, missing rowpct
+
 tabulate utdniv yrkstat, missing rowpct
 tabulate BFylke2022 yrkstat, missing rowpct
 tabulate alder22 yrkstat, missing rowpct
@@ -173,3 +201,125 @@ import fdb/INNTEKT_WSAMINNT 2021-12-31 as inntekt
 summarize inntekt
 tabulate yrke2 bostedsgruppe2022, summarize(inntekt)
 tabulate yrke2 utdniv, summarize(inntekt)
+
+//legger til sentralitet
+generate sentralitet2022 = substr(bosted2022,1,4)
+recode sentralitet2022 ('0301' '3020' '3024' '3027' '3029' '3030' = '01' 'Sentralitet: 1 (925-1000) - høy') ('1103' '1108' '3002' '3003' '3004' '3005' '3019' '3021' '3022' '3025' '3031' '3032' '3033' '3049' '3403' '3801' '3803' '4601' '5001' = '02' 'Sentralitet: 2 (870-924)') ('1106' '1120' '1121' '1122' '1124' '1127' '1507' '1804' '3001' '3006' '3007' '3014' '3015' '3016' '3017' '3018' '3023' '3026' '3028' '3034' '3035' '3036' '3038' '3047' '3048' '3053' '3054' '3401' '3405' '3407' '3411' '3412' '3413' '3420' '3443' '3446' '3802' '3804' '3805' '3806' '3807' '3811' '3813' '4202' '4203' '4204' '4215' '4627' '5031' '5035' '5401' = '03' 'Sentralitet: 3 (775-869)') ('1101' '1114' '1119' '1130' '1146' '1149' '1505' '1506' '1516' '1517' '1520' '1528' '1531' '1532' '1577' '1806' '1824' '1833' '1841' '1870' '3011' '3013' '3037' '3041' '3050' '3414' '3415' '3416' '3440' '3441' '3442' '3447' '3448' '3451' '3808' '3812' '3814' '3816' '3817' '4201' '4205' '4206' '4207' '4213' '4214' '4216' '4219' '4223' '4225' '4612' '4614' '4621' '4622' '4623' '4624' '4626' '4630' '4631' '4647' '5006' '5007' '5028' '5029' '5036' '5037' '5038' '5053' '5059' '5402' '5403' '5406' = '04' 'Sentralitet: 4 (670-774)') ('1111' '1112' '1135' '1145' '1160' '1515' '1525' '1535' '1539' '1547' '1554' '1557' '1560' '1563' '1566' '1579' '1813' '1820' '1840' '1860' '1865' '1866' '1868' '3012' '3039' '3040' '3042' '3043' '3044' '3045' '3046' '3051' '3417' '3418' '3419' '3421' '3422' '3427' '3428' '3430' '3435' '3436' '3437' '3438' '3439' '3449' '3450' '3452' '3453' '3815' '3818' '3819' '3820' '3821' '4211' '4212' '4217' '4218' '4226' '4227' '4228' '4602' '4611' '4613' '4615' '4617' '4618' '4625' '4628' '4632' '4640' '4643' '4649' '4650' '4651' '5021' '5022' '5025' '5027' '5032' '5034' '5045' '5047' '5054' '5055' '5057' '5061' '5405' '5411' '5416' '5418' '5419' '5421' '5428' '5437' '5444' = '05' 'Sentralitet: 5 (565-669)') ('1133' '1134' '1144' '1151' '1511' '1514' '1573' '1576' '1578' '1811' '1812' '1815' '1816' '1818' '1822' '1825' '1826' '1827' '1828' '1832' '1834' '1835' '1836' '1837' '1838' '1839' '1845' '1848' '1851' '1853' '1856' '1857' '1859' '1867' '1871' '1874' '1875' '3052' '3423' '3424' '3425' '3426' '3429' '3431' '3432' '3433' '3434' '3454' '3822' '3823' '3824' '3825' '4220' '4221' '4222' '4224' '4616' '4619' '4620' '4629' '4633' '4634' '4635' '4636' '4637' '4638' '4639' '4641' '4642' '4644' '4645' '4646' '4648' '5014' '5020' '5026' '5033' '5041' '5042' '5043' '5044' '5046' '5049' '5052' '5056' '5058' '5060' '5404' '5412' '5413' '5414' '5415' '5417' '5420' '5422' '5423' '5424' '5425' '5426' '5427' '5429' '5430' '5432' '5433' '5434' '5435' '5436' '5438' '5439' '5440' '5441' '5442' '5443' = '06' 'Sentralitet: 6 (0-564) - lav')
+
+tabulate sentralitet2022 utdniv, missing
+
+//lager grupper med bosted 2000 med kommunestruktyr per 2020
+generate Bosted_2000_nye_kom = substr(bosted,1,4)
+recode Bosted_2000_nye_kom ('1601' '1662' '5001' '5030' = '5001' 'Trondheim') ('1702' '1724' '5004' '5039' '5006' = '5006' 'Steinkjer') ('1703' '1725' '1748' '5005' '5040' '5048' '5007' = '5007' 'Namsos') ('1620' '5014' = '5014' 'Frøya') ('1633' '5020' = '5020' 'Osen') ('1634' '5021' = '5021' 'Oppdal') ('1635' '5022' = '5022' 'Rennebu') ('1640' '5025' = '5025' 'Røros') ('1644' '5026' = '5026' 'Holtålen') ('1648' '5027' = '5027' 'Midtre Gauldal') ('1653' '5028' = '5028' 'Melhus') ('1657' '5029' = '5029' 'Skaun') ('1663' '5031' = '5031' 'Malvik') ('1664' '5032' = '5032' 'Selbu') ('1665' '5033' = '5033' 'Tydal') ('1711' '5034' = '5034' 'Meråker') ('1714' '5035' = '5035' 'Stjørdal') ('1717' '5036' = '5036' 'Frosta') ('1719' '5037' = '5037' 'Levanger') ('1721' '5038' = '5038' 'Verdal') ('1736' '5041' = '5041' 'Snåase - Snåsa') ('1738' '5042' = '5042' 'Lierne') ('1739' '5043' = '5043' 'Raarvihke - Røyrvik') ('1740' '5044' = '5044' 'Namsskogan') ('1742' '5045' = '5045' 'Grong') ('1743' '5046' = '5046' 'Høylandet') ('1744' '5047' = '5047' 'Overhalla') ('1749' '5049' = '5049' 'Flatanger') ('1755' '5052' = '5052' 'Leka') ('1729' '1723' '1756' '5053' = '5053' 'Inderøy') ('1624' '1718' '5054' = '5054' 'Indre Fosen') ('1612' '1571' '5011' '5055' = '5055' 'Heim') ('1617' '5013' '5056' = '5056' 'Hitra') ('1621' '1627' '5015' '5017' '5057' = '5057' 'Ørland') ('1630' '1632' '5018' '5019' '5058' = '5058' 'Åfjord') ('1613' '1622' '1636' '1638' '5012' '5016' '5023' '5024' '5059' = '5059' 'Orkland') ('1750' '1751' '5050' '5051' '5060' = '5060' 'Nærøysund') ('1567' '5061' = '5061' 'Rindal')
+
+tabulate Bosted_2000_nye_kom, missing
+
+//legger til sentralitet
+generate sentralitet2000 = substr(Bosted_2000_nye_kom,1,4)
+recode sentralitet2000 ('0301' '3020' '3024' '3027' '3029' '3030' = '01' 'Sentralitet: 1 (925-1000) - høy') ('1103' '1108' '3002' '3003' '3004' '3005' '3019' '3021' '3022' '3025' '3031' '3032' '3033' '3049' '3403' '3801' '3803' '4601' '5001' = '02' 'Sentralitet: 2 (870-924)') ('1106' '1120' '1121' '1122' '1124' '1127' '1507' '1804' '3001' '3006' '3007' '3014' '3015' '3016' '3017' '3018' '3023' '3026' '3028' '3034' '3035' '3036' '3038' '3047' '3048' '3053' '3054' '3401' '3405' '3407' '3411' '3412' '3413' '3420' '3443' '3446' '3802' '3804' '3805' '3806' '3807' '3811' '3813' '4202' '4203' '4204' '4215' '4627' '5031' '5035' '5401' = '03' 'Sentralitet: 3 (775-869)') ('1101' '1114' '1119' '1130' '1146' '1149' '1505' '1506' '1516' '1517' '1520' '1528' '1531' '1532' '1577' '1806' '1824' '1833' '1841' '1870' '3011' '3013' '3037' '3041' '3050' '3414' '3415' '3416' '3440' '3441' '3442' '3447' '3448' '3451' '3808' '3812' '3814' '3816' '3817' '4201' '4205' '4206' '4207' '4213' '4214' '4216' '4219' '4223' '4225' '4612' '4614' '4621' '4622' '4623' '4624' '4626' '4630' '4631' '4647' '5006' '5007' '5028' '5029' '5036' '5037' '5038' '5053' '5059' '5402' '5403' '5406' = '04' 'Sentralitet: 4 (670-774)') ('1111' '1112' '1135' '1145' '1160' '1515' '1525' '1535' '1539' '1547' '1554' '1557' '1560' '1563' '1566' '1579' '1813' '1820' '1840' '1860' '1865' '1866' '1868' '3012' '3039' '3040' '3042' '3043' '3044' '3045' '3046' '3051' '3417' '3418' '3419' '3421' '3422' '3427' '3428' '3430' '3435' '3436' '3437' '3438' '3439' '3449' '3450' '3452' '3453' '3815' '3818' '3819' '3820' '3821' '4211' '4212' '4217' '4218' '4226' '4227' '4228' '4602' '4611' '4613' '4615' '4617' '4618' '4625' '4628' '4632' '4640' '4643' '4649' '4650' '4651' '5021' '5022' '5025' '5027' '5032' '5034' '5045' '5047' '5054' '5055' '5057' '5061' '5405' '5411' '5416' '5418' '5419' '5421' '5428' '5437' '5444' = '05' 'Sentralitet: 5 (565-669)') ('1133' '1134' '1144' '1151' '1511' '1514' '1573' '1576' '1578' '1811' '1812' '1815' '1816' '1818' '1822' '1825' '1826' '1827' '1828' '1832' '1834' '1835' '1836' '1837' '1838' '1839' '1845' '1848' '1851' '1853' '1856' '1857' '1859' '1867' '1871' '1874' '1875' '3052' '3423' '3424' '3425' '3426' '3429' '3431' '3432' '3433' '3434' '3454' '3822' '3823' '3824' '3825' '4220' '4221' '4222' '4224' '4616' '4619' '4620' '4629' '4633' '4634' '4635' '4636' '4637' '4638' '4639' '4641' '4642' '4644' '4645' '4646' '4648' '5014' '5020' '5026' '5033' '5041' '5042' '5043' '5044' '5046' '5049' '5052' '5056' '5058' '5060' '5404' '5412' '5413' '5414' '5415' '5417' '5420' '5422' '5423' '5424' '5425' '5426' '5427' '5429' '5430' '5432' '5433' '5434' '5435' '5436' '5438' '5439' '5440' '5441' '5442' '5443' = '06' 'Sentralitet: 6 (0-564) - lav')
+
+tabulate sentralitet2022 sentralitet2000, missing
+
+sankey sentralitet2000 sentralitet2022
+
+
+//lager gruper for å se på personer har "byttet kommune"
+generate Bosted2000Vs2022 = '04- Utenfor Trøndelag'
+replace Bosted2000Vs2022 = '03 -Andre kommuner i Trøndelag' if BFylke2022 == '50' 
+replace Bosted2000Vs2022 = '02- Flyttet fra distrikt til  Trondheim' if kommnr2022 == '5001'
+replace Bosted2000Vs2022 = '01- Undret kommune' if kommnr2022 == Bosted_2000_nye_kom 
+
+tabulate Bosted2000Vs2022, missing
+
+tabulate bosted Bosted2000Vs2022, missing
+tabulate Bosted_2000_nye_kom Bosted2000Vs2022, missing
+
+
+tabulate sentralitet2000 Bosted2000Vs2022, missing
+sankey sentralitet2000 Bosted2000Vs2022
+tabulate utdniv Bosted2000Vs2022, missing
+
+
+//lager grupper for å se på personer som her byttet sentralitetsklasse. 
+generate Sent_vs_sent = '04- ukjent'
+replace Sent_vs_sent = '01 -uendret sentralitet' if sentralitet2022 == sentralitet2000 
+replace Sent_vs_sent = '02 -høyere sentralitet' if sentralitet2022 < sentralitet2000 
+replace Sent_vs_sent = '03 -lavere sentralitet' if sentralitet2022 > sentralitet2000 
+
+tabulate Sent_vs_sent, missing
+
+tabulate Bosted_2000_nye_kom Sent_vs_sent, missing
+
+tabulate utdniv Sent_vs_sent, missing
+tabulate utdniv Sent_vs_sent, missing rowpct
+
+
+//analyse for å finne antall barn - Bruker kode fra Mads i bergen - Gjør det litt tungvint med to spørringer - en for mot og en for far - fordi jeg er lat og ikke vil lage en nye kode
+// Mor
+create-dataset mødredata
+
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2022-01-01 as bosted_mor
+import fdb/BEFOLKNING_PARITET as paritet
+import fdb/BEFOLKNING_MOR_FNR as fnr_mor
+
+collapse(max) paritet, by(fnr_mor)
+rename paritet ant_barn
+
+summarize ant_barn
+tabulate ant_barn
+
+merge ant_barn into Dataset
+
+use Dataset
+
+generate ant_barnT = ant_barn
+replace ant_barnT = 0 if sysmiss(ant_barn)
+tabulate ant_barnT
+
+generate ant_barn_kategori = '0'
+replace ant_barn_kategori = '1' if ant_barn == 1
+replace ant_barn_kategori = '2' if ant_barn == 2
+replace ant_barn_kategori = '3' if ant_barn == 3
+replace ant_barn_kategori = '4' if ant_barn == 4
+replace ant_barn_kategori = '5' if ant_barn == 5
+replace ant_barn_kategori = '6 eller flere' if ant_barn > 5
+
+summarize ant_barn
+tabulate ant_barn, missing
+tabulate ant_barn_kategori
+tabulate ant_barn_kategori kjønn
+
+// far
+create-dataset fedredata
+
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2022-01-01 as bosted_far
+import fdb/BEFOLKNING_PARITET as paritetF
+import fdb/BEFOLKNING_FAR_FNR as fnr_far
+
+collapse(max) paritetF, by(fnr_far)
+rename paritetF ant_barn2
+
+summarize ant_barn2
+tabulate ant_barn2
+
+merge ant_barn2 into Dataset
+
+use Dataset
+
+generate ant_barnT2 = ant_barn2
+replace ant_barnT2 = 0 if sysmiss(ant_barn2)
+tabulate ant_barnT2
+
+generate ant_barn_kategori2 = '0'
+replace ant_barn_kategori2 = '1' if ant_barn2 == 1
+replace ant_barn_kategori2 = '2' if ant_barn2 == 2
+replace ant_barn_kategori2 = '3' if ant_barn2 == 3
+replace ant_barn_kategori2 = '4' if ant_barn2 == 4
+replace ant_barn_kategori2 = '5' if ant_barn2 == 5
+replace ant_barn_kategori2 = '6 eller flere' if ant_barn2 > 5
+
+summarize ant_barn2
+tabulate ant_barn2, missing
+tabulate ant_barn_kategori2
+tabulate ant_barn_kategori2 kjønn
+
