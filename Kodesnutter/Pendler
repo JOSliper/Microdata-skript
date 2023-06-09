@@ -1,3 +1,5 @@
+//alternativ 1 - merk ulikt arbeidstidpunkt og bostedstidpunkt 
+
 //henter arbeidsstedskommune 
 import fdb/REGSYS_ARB_ARBKOMM 2021-11-16 as arbeidsted
 generate Akommnr = substr(arbeidsted,1,4)
@@ -11,3 +13,19 @@ generate Bkommnr = substr(bosted,1,4)
 //lager dummy pendler
 generate pendler = 'pendler'
 replace pendler = 'Ikke pendler' if Bkommnr == Akommnr
+
+
+//alternativ 2 - med likt arbeidstidpunkt og bostedstidpunkt 
+
+//henter arbeidsstedskommune 
+import fdb/REGSYS_ARB_ARBKOMM 2021-11-16 as arbeidsted
+generate Akommnr = substr(arbeidsted,1,4)
+
+///henter bostedskommune
+import fdb/BOSATTEFDT_BOSTED 2021-11-16 as bosted
+generate Bkommnr = substr(bosted,1,4)
+
+//lager dummy pendler
+generate pendler = 'pendler'
+replace pendler = 'Ikke pendler' if Bkommnr == Akommnr
+
