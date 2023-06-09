@@ -1,4 +1,4 @@
-require no.ssb.fdb:17 as fdb
+require no.ssb.fdb:21 as fdb
 create-dataset Dataset
 
 //henter arbeidsstedskommune 
@@ -8,7 +8,7 @@ generate Akommnr = substr(arbeidsted,1,4)
 keep if AFylke == '50'
 
 //henter personer som bor i Trøndelag
-import fdb/BEFOLKNING_KOMMNR_FORMELL 2022-01-01 as bosted
+import fdb/BOSATTEFDT_BOSTED 2021-11-16 as bosted
 generate BFylke = substr(bosted,1,2)
 generate Bkommnr = substr(bosted,1,4)
 tabulate  BFylke
