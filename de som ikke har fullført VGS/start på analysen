@@ -17,24 +17,59 @@ destring Startår_VGS
 
 tabulate Startår_VGS  kjønn if Startår_VGS >= 2010, missing
 
-//legger til utdanningsnivå
+//legger til utdanningsnivå - ikke fullført VGS, fullført vgs, fullført vgs og UH 
 import fdb/NUDB_BU 2021-08-01 as utd
 generate utd1 = substr(utd,1,1)
 //lager kategorier
 generate utdniv = '1'
 replace utdniv = '2' if utd1 == '3' | utd1 == '4' | utd1 == '5'
 replace utdniv = '3' if utd1 == '6' | utd1 == '7' | utd1 == '8' 
-define-labels utdnivtxt '2'  'Videregående grunnopplæring' '3' 'Universitets og høgskolenivå'  '1' 'ikke fullført videregående'
+define-labels utdnivtxt '2'  'Fullført Videregående ' '3' 'Universitets og høgskole utdanning'  '1' 'Ikke fullført videregående'
 assign-labels utdniv utdnivtxt
 
-tabulate Startår_VGS utdniv if Startår_VGS >= 2000, missing rowpct freq 
+generate fulldummuy = '1'
+replace fulldummuy = '2' if utd1 == '3' | utd1 == '4' | utd1 == '5' |utd1 == '6' | utd1 == '7' | utd1 == '8' 
+define-labels fulldummuytxt '2'  'Fullført Videregående ' '3' 'Universitets og høgskole utdanning'  '1' 'Ikke fullført videregående'
+assign-labels fulldummuy fulldummuytxt
 
-keep if Startår_VGS == 2015
+tabulate Startår_VGS utdniv if Startår_VGS >= 2000, missing rowpct freq 
+tabulate Startår_VGS utdniv if Startår_VGS >= 2000, missing
+
+keep if Startår_VGS == 2010
 tabulate utdniv kjønn, missing colpct freq
+tabulate fulldummuy kjønn, missing colpct freq
+
+//legger til grunnskolepoeng
+// kun personer som har karakter i minst 8 av 11 fag får grunnskolepoeng
+import fdb/NUDB_KURS_GRPOENG as Gpoeng
+generate Grunnpoeng = '0 eller manglende opplysninger'
+replace Grunnpoeng = '1-10' if Gpoeng > 1
+replace Grunnpoeng = '10-30' if Gpoeng > 10
+replace Grunnpoeng = '30-40' if Gpoeng > 30
+replace Grunnpoeng = '40-50' if Gpoeng > 40
+replace Grunnpoeng = '50-60' if Gpoeng > 50
+replace Grunnpoeng = 'Over 60' if Gpoeng > 60
+
+tabulate fulldummuy Grunnpoeng, missing colpct freq
+tabulate fulldummuy Grunnpoeng, missing
+
+import fdb/NUDB_SOSBAK as Sosialbakgrunn
+generate Bkode = '9 Uoppgitt' 
+replace Bkode = '4 Lang høyere' if Sosialbakgrunn == '1'
+replace Bkode = '3 Kort høyere'  if Sosialbakgrunn == '2'
+replace Bkode = '2 Videregående'   if Sosialbakgrunn == '3'
+replace Bkode = '1 Grunnskole'   if Sosialbakgrunn == '4'
+
+tabulate Sosialbakgrunn fulldummuy, missing rowpct freq
+tabulate Sosialbakgrunn fulldummuy, missing
+
+tabulate Sosialbakgrunn Grunnpoeng, missing
+sankey Bkode Grunnpoeng
+
 
 //Henter personer som tar utdanning per 1. oktober i år x, og kobler dette på persondatasettet. 
 create-dataset kursdata
-import fdb/NUDB_KURS_NUS 2015-10-01 as kurstype
+import fdb/NUDB_KURS_NUS 2010-10-01 as kurstype
 import fdb/NUDB_KURS_FNR as fnr
 tabulate kurstype
 //beholder de som er i videregående utdanning per 1. oktober i år x, - tenker å bruke denne for å skille mellom de som gikk allmen/yrkesfag 
@@ -60,11 +95,13 @@ use Dataset
 
 //test antall videregående kurs vs Trøndere som startet VGS i år x
 tabulate Startår_VGS ant_kurs, missing
+tabulate utdniv ant_kurs, missing
 
-keep if ant_kurs == 1 
+//keep if ant_kurs == 1 
 
 //tabulerer utdanningsnivå på nytt
 tabulate utdniv kjønn, missing colpct freq
+tabulate utdniv kjønn, missing rowpct freq
 
 //henter Årstall første gang fullført treårig utdanning 
 import fdb/NUDB_AAR_FORSTE_FULLF_VS as  var2
@@ -75,6 +112,7 @@ destring Fullført_VGS
 tabulate  Startår_VGS Fullført_VGS, missing
 tabulate Fullført_VGS kjønn, missing colpct freq
 tabulate Fullført_VGS utdniv, missing colpct freq
+tabulate Fullført_VGS, missing 
 
 //første gang fullført treårig utdanning under lov om videregående opplæring
 import fdb/NUDB_AAR_FORSTE_FULLF_VS_LOV as var2_1
@@ -97,17 +135,21 @@ destring Fullført_VGS_A
 tabulate Fullført_VGS_A, missing
 tabulate Fullført_VGS_Y Fullført_VGS_A, missing
 
-
 import fdb/NUDB_SEMESTER_FFF_VS as semester
 tabulate semester utdniv, missing colpct freq
 
-
 //starter å ta ut data om hva de driver med nå...
+
+//stauskode til fødselsnummer- for å se hvor mange som har død eller flyttet ut
+import fdb/BEFOLKNING_STATUSKODE 2021-01-01 as status
+
+tabulate utdniv status, missing
 
 //arbeidstatus
 import fdb/REGSYS_ARB_ARBMARK_STATUS 2021-11-16 as yrkstat
 tabulate yrkstat utdniv, missing colpct freq
 tabulate yrkstat utdniv, missing rowpct freq
+tabulate yrkstat utdniv, missing 
 
 //henter arbeidstid
 import fdb/REGSYS_ARB_ARBEIDSTID 2021-11-16 as atid
@@ -115,7 +157,7 @@ summarize atid
 histogram atid
 
 tabulate yrkstat utdniv, summarize(atid)
-
+tabulate yrkstat fulldummuy, summarize(atid)
 
 //Gruppere atid i  intervaller
 generate atidint = 'ikke lønnstaker'
@@ -128,12 +170,27 @@ replace atidint = '35-37.5' if atid > 35
 replace atidint = 'Over 37.5' if atid > 37.50
 
 tabulate atidint utdniv if yrkstat =='1', missing 
+tabulate atidint fulldummuy if yrkstat =='1', missing 
 
 //legger til inntekt 
 import fdb/INNTEKT_WSAMINNT 2021-12-31 as inntekt
 
 summarize inntekt
 tabulate  yrkstat utdniv, summarize(inntekt)
+tabulate  yrkstat fulldummuy, summarize(inntekt)
+
+//lager dummy på sysselsatt ikke sysselsatt
+generate sysselsatt = 'Ikke sysselsatt'
+replace sysselsatt = 'Sysselsatt' if yrkstat == '1'| yrkstat == '2'
+
+tabulate  sysselsatt utdniv, summarize(inntekt)
+tabulate  sysselsatt utdniv, missing colpct freq
+
+tabulate  sysselsatt fulldummuy, summarize(inntekt)
+tabulate  sysselsatt fulldummuy, missing colpct freq
+
+histogram inntekt if fulldummuy == '1'
+tabulate atidint fulldummuy if yrkstat =='1', summarize(inntekt) 
 
 //henter yrke per 4. kvartal 2021
 import fdb/REGSYS_ARB_YRKE_STYRK08 2021-11-16 as yrke
@@ -153,3 +210,5 @@ replace sosial = 'ja' if sosialhjelp >= 1
 tabulate utdniv sosial, missing
 tabulate sosial grad, missing
 tabulate utdniv sosial grad, missing
+
+//trangbod, eie/leie, famillie 
