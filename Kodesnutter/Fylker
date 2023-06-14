@@ -5,7 +5,7 @@ define-labels botxt '03' 'Oslo' '11' 'Rogaland' '15' 'Møre og Romsdal' '18'	'No
 assign-labels BFylke2022 botxt
 
 
-//henter personer i jobb som bor i Trøndelag
+//henter personer som bor i Trøndelag
 import fdb/BEFOLKNING_KOMMNR_FORMELL 2000-01-01 as bosted
 generate fylke = substr(bosted,1,2)
 generate kommnr = substr(bosted,1,4)
