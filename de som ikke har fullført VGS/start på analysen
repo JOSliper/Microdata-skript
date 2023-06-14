@@ -27,17 +27,17 @@ replace utdniv = '3' if utd1 == '6' | utd1 == '7' | utd1 == '8'
 define-labels utdnivtxt '2'  'Fullført Videregående ' '3' 'Universitets og høgskole utdanning'  '1' 'Ikke fullført videregående'
 assign-labels utdniv utdnivtxt
 
-generate fulldummuy = '1'
-replace fulldummuy = '2' if utd1 == '3' | utd1 == '4' | utd1 == '5' |utd1 == '6' | utd1 == '7' | utd1 == '8' 
-define-labels fulldummuytxt '2'  'Fullført Videregående ' '3' 'Universitets og høgskole utdanning'  '1' 'Ikke fullført videregående'
-assign-labels fulldummuy fulldummuytxt
+generate fulldummy = '1'
+replace fulldummy = '2' if utd1 == '3' | utd1 == '4' | utd1 == '5' |utd1 == '6' | utd1 == '7' | utd1 == '8' 
+define-labels fulldummytxt '2'  'Fullført Videregående ' '3' 'Universitets og høgskole utdanning'  '1' 'Ikke fullført videregående'
+assign-labels fulldummy fulldummytxt
 
 tabulate Startår_VGS utdniv if Startår_VGS >= 2000, missing rowpct freq 
 tabulate Startår_VGS utdniv if Startår_VGS >= 2000, missing
 
 keep if Startår_VGS == 2010
 tabulate utdniv kjønn, missing colpct freq
-tabulate fulldummuy kjønn, missing colpct freq
+tabulate fulldummy kjønn, missing colpct freq
 
 //legger til grunnskolepoeng
 // kun personer som har karakter i minst 8 av 11 fag får grunnskolepoeng
@@ -50,8 +50,8 @@ replace Grunnpoeng = '40-50' if Gpoeng > 40
 replace Grunnpoeng = '50-60' if Gpoeng > 50
 replace Grunnpoeng = 'Over 60' if Gpoeng > 60
 
-tabulate fulldummuy Grunnpoeng, missing colpct freq
-tabulate fulldummuy Grunnpoeng, missing
+tabulate fulldummy Grunnpoeng, missing colpct freq
+tabulate fulldummy Grunnpoeng, missing
 
 import fdb/NUDB_SOSBAK as Sosialbakgrunn
 generate Bkode = '9 Uoppgitt' 
@@ -60,12 +60,11 @@ replace Bkode = '3 Kort høyere'  if Sosialbakgrunn == '2'
 replace Bkode = '2 Videregående'   if Sosialbakgrunn == '3'
 replace Bkode = '1 Grunnskole'   if Sosialbakgrunn == '4'
 
-tabulate Sosialbakgrunn fulldummuy, missing rowpct freq
-tabulate Sosialbakgrunn fulldummuy, missing
+tabulate Sosialbakgrunn fulldummy, missing rowpct freq
+tabulate Sosialbakgrunn fulldummy, missing
 
 tabulate Sosialbakgrunn Grunnpoeng, missing
 sankey Bkode Grunnpoeng
-
 
 //Henter personer som tar utdanning per 1. oktober i år x, og kobler dette på persondatasettet. 
 create-dataset kursdata
@@ -157,7 +156,7 @@ summarize atid
 histogram atid
 
 tabulate yrkstat utdniv, summarize(atid)
-tabulate yrkstat fulldummuy, summarize(atid)
+tabulate yrkstat fulldummy, summarize(atid)
 
 //Gruppere atid i  intervaller
 generate atidint = 'ikke lønnstaker'
@@ -170,14 +169,14 @@ replace atidint = '35-37.5' if atid > 35
 replace atidint = 'Over 37.5' if atid > 37.50
 
 tabulate atidint utdniv if yrkstat =='1', missing 
-tabulate atidint fulldummuy if yrkstat =='1', missing 
+tabulate atidint fulldummy if yrkstat =='1', missing 
 
 //legger til inntekt 
 import fdb/INNTEKT_WSAMINNT 2021-12-31 as inntekt
 
 summarize inntekt
 tabulate  yrkstat utdniv, summarize(inntekt)
-tabulate  yrkstat fulldummuy, summarize(inntekt)
+tabulate  yrkstat fulldummy, summarize(inntekt)
 
 //lager dummy på sysselsatt ikke sysselsatt
 generate sysselsatt = 'Ikke sysselsatt'
@@ -186,19 +185,24 @@ replace sysselsatt = 'Sysselsatt' if yrkstat == '1'| yrkstat == '2'
 tabulate  sysselsatt utdniv, summarize(inntekt)
 tabulate  sysselsatt utdniv, missing colpct freq
 
-tabulate  sysselsatt fulldummuy, summarize(inntekt)
-tabulate  sysselsatt fulldummuy, missing colpct freq
+tabulate  sysselsatt fulldummy, summarize(inntekt)
+tabulate  sysselsatt fulldummy, missing colpct freq
 
-histogram inntekt if fulldummuy == '1'
-tabulate atidint fulldummuy if yrkstat =='1', summarize(inntekt) 
+histogram inntekt if fulldummy == '1'
+tabulate atidint fulldummy if yrkstat =='1', summarize(inntekt) 
 
 //henter yrke per 4. kvartal 2021
 import fdb/REGSYS_ARB_YRKE_STYRK08 2021-11-16 as yrke
 
 tabulate yrke utdniv if yrkstat =='1', missing
+tabulate yrke fulldummy if yrkstat =='1', missing
 
 import fdb/UFOERP2011FDT_GRAD 2021-11-30 as grad
 tabulate grad utdniv, missing colpct freq
+generate ufør = 'ikke  ufør'
+replace ufør = 'ufør' if grad > 0
+
+tabulate ufør fulldummy, missing colpct freq
 
 import fdb/SOSHJLPZFDT_BIDB 2021-12-31 as sosialhjelp
 summarize sosialhjelp
