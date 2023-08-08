@@ -24,12 +24,12 @@ generate utd1 = substr(utd,1,1)
 generate utdniv = '1'
 replace utdniv = '2' if utd1 == '3' | utd1 == '4' | utd1 == '5'
 replace utdniv = '3' if utd1 == '6' | utd1 == '7' | utd1 == '8' 
-define-labels utdnivtxt '2'  'Fullført Videregående ' '3' 'Universitets og høgskole utdanning'  '1' 'Ikke fullført videregående'
+define-labels utdnivtxt '2'  'Fullført videregående ' '3' 'Universitets og høgskole utdanning'  '1' 'Ikke fullført videregående'
 assign-labels utdniv utdnivtxt
 
 generate fulldummy = '1'
 replace fulldummy = '2' if utd1 == '3' | utd1 == '4' | utd1 == '5' |utd1 == '6' | utd1 == '7' | utd1 == '8' 
-define-labels fulldummytxt '2'  'Fullført Videregående ' '3' 'Universitets og høgskole utdanning'  '1' 'Ikke fullført videregående'
+define-labels fulldummytxt '2'  'Fullført videregående '  '1' 'Ikke fullført videregående'
 assign-labels fulldummy fulldummytxt
 
 tabulate Startår_VGS utdniv if Startår_VGS >= 2000, missing rowpct freq 
@@ -38,6 +38,18 @@ tabulate Startår_VGS utdniv if Startår_VGS >= 2000, missing
 keep if Startår_VGS == 2010
 tabulate utdniv kjønn, missing colpct freq
 tabulate fulldummy kjønn, missing colpct freq
+
+//henter alder 
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+generate alder = 2010 - int (faarmnd/100)
+summarize alder
+generate aldersgruppe = 'Ukjent '
+replace aldersgruppe = '15 år eller yngere' if alder <= 15
+replace aldersgruppe = '16 år' if alder == 16
+replace aldersgruppe = '17 år' if alder == 17
+replace aldersgruppe = '18 år' if alder == 18
+replace aldersgruppe = '19 år eller eldre' if alder >= 19
+tabulate aldersgruppe
 
 //legger til grunnskolepoeng
 // kun personer som har karakter i minst 8 av 11 fag får grunnskolepoeng
@@ -49,6 +61,8 @@ replace Grunnpoeng = '30-40' if Gpoeng > 30
 replace Grunnpoeng = '40-50' if Gpoeng > 40
 replace Grunnpoeng = '50-60' if Gpoeng > 50
 replace Grunnpoeng = 'Over 60' if Gpoeng > 60
+
+summarize Gpoeng
 
 tabulate fulldummy Grunnpoeng, missing colpct freq
 tabulate fulldummy Grunnpoeng, missing
@@ -65,6 +79,8 @@ tabulate Sosialbakgrunn fulldummy, missing
 
 tabulate Sosialbakgrunn Grunnpoeng, missing
 sankey Bkode Grunnpoeng
+
+tabulate  Sosialbakgrunn fulldummy, summarize(Gpoeng)
 
 //Henter personer som tar utdanning per 1. oktober i år x, og kobler dette på persondatasettet. 
 create-dataset kursdata
@@ -206,6 +222,7 @@ tabulate ufør fulldummy, missing colpct freq
 
 import fdb/SOSHJLPZFDT_BIDB 2021-12-31 as sosialhjelp
 summarize sosialhjelp
+
 tabulate utdniv, summarize(sosialhjelp)
 
 generate sosial = 'Nei'
@@ -215,4 +232,52 @@ tabulate utdniv sosial, missing
 tabulate sosial grad, missing
 tabulate utdniv sosial grad, missing
 
-//trangbod, eie/leie, famillie 
+tabulate fulldummy sosial ufør, missing
+
+//henter eie/leie status og trangbodhet
+import fdb/BOFORHOLD_EIE_LEIE 2022-01-01 as eie_leie
+tabulate fulldummy eie_leie,missing
+
+import fdb/BOFORHOLD_TRANGBODD 2022-01-01 as trang
+tabulate fulldummy trang,missing
+
+//legger til familietype
+import fdb/BEFOLKNING_REGSTAT_FAMTYP 2022-01-01 as familie
+generate Familkat  = substr(familie,1,1)
+generate Familiegruppe = '9- ukjent'
+replace Familiegruppe ='1- Enpersonsfamilie' if Familkat == '1'
+replace Familiegruppe = '2 - Familier med barn under 18 år' if Familkat == '2'
+replace Familiegruppe = '3 - Andre familier' if Familkat == '3'
+
+tabulate familie kjønn, missing
+tabulate familie fulldummy, missing
+
+tabulate Familiegruppe kjønn, missing
+
+tabulate Familiegruppe fulldummy, missing
+tabulate kjønn Familiegruppe fulldummy, missing
+
+//starter å se på bosted 
+tabulate bosted16, missing 
+generate Trondheim2010 = '02- Resten av Trøndelag'
+replace Trondheim2010 = '01- Trondheim' if bosted16 == '1601' | bosted16  == '1662'
+
+tabulate Trondheim2010 fulldummy, missing rowpct colpct freq
+
+//henter bosted 2010 for å se hvor mange som ikke bodde i Trøndelag det året de startet vgs
+import fdb/BOSATTEFDT_BOSTED 2010-11-01 as bosted
+generate fylke2 = substr(bosted,1,2)
+generate kommnr2 = substr(bosted,1,4)
+
+generate Trøndelag2010 = '02 - ikke Trøndelag'
+replace Trøndelag2010 = '01 -Trøndelag' if fylke2 == '50'| fylke2 == '16'| fylke2  == '17'  | kommnr2  == '1567'| kommnr2  == '1571'
+tabulate Trøndelag2010 aldersgruppe
+
+//henter bosted 2022
+//henter bostedskommuen og lager fylker
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2022-01-01 as bosted2022
+generate BFylke2022 = substr(bosted2022,1,2)
+define-labels botxt '03' 'Oslo' '11' 'Rogaland' '15' 'Møre og Romsdal' '18'	'Nordland''30''Viken' '34''Innlandet''38' 'Vestfold og Telemark''42'	'Agder''46'	'Vestland' '50''Trøndelag'	'54''Troms og Finnmark'
+assign-labels BFylke2022 botxt
+
+tabulate BFylke2022 fulldummy, missing
