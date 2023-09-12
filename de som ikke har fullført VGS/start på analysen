@@ -193,6 +193,7 @@ import fdb/INNTEKT_WSAMINNT 2021-12-31 as inntekt
 summarize inntekt
 tabulate  yrkstat utdniv, summarize(inntekt)
 tabulate  yrkstat fulldummy, summarize(inntekt)
+summarize inntekt
 
 //lager dummy på sysselsatt ikke sysselsatt
 generate sysselsatt = 'Ikke sysselsatt'
@@ -206,6 +207,191 @@ tabulate  sysselsatt fulldummy, missing colpct freq
 
 histogram inntekt if fulldummy == '1'
 tabulate atidint fulldummy if yrkstat =='1', summarize(inntekt) 
+
+
+//legger til formue og gjeld
+import fdb/SKATT_NETTOFORMUE 2021-12-31 as netto_formue
+histogram netto_formue
+summarize netto_formue
+tabulate  sysselsatt fulldummy, summarize(netto_formue)
+
+replace netto_formue = 0 if sysmiss (netto_formue)
+histogram netto_formue
+summarize netto_formue
+tabulate  sysselsatt fulldummy, summarize(netto_formue)
+
+import fdb/INNTEKT_BER_BRFORM 2021-12-31 as brutto_formue
+histogram brutto_formue
+summarize brutto_formue
+tabulate  sysselsatt fulldummy, summarize(brutto_formue)
+
+replace brutto_formue = 0 if sysmiss (brutto_formue)
+
+histogram brutto_formue
+summarize brutto_formue
+tabulate  sysselsatt fulldummy, summarize(brutto_formue)
+
+import fdb/INNTEKT_BER_REALKAP 2021-12-31 as REALKAP
+histogram REALKAP
+summarize REALKAP
+tabulate  sysselsatt fulldummy, summarize(REALKAP)
+
+replace REALKAP = 0 if sysmiss (REALKAP)
+
+histogram REALKAP
+summarize REALKAP
+tabulate  sysselsatt fulldummy, summarize(REALKAP)
+
+import fdb/SKATT_GJELD 2021-12-31 as gjeld
+histogram gjeld
+summarize gjeld
+tabulate  sysselsatt fulldummy, summarize(gjeld)
+
+replace gjeld = 0 if sysmiss (gjeld)
+
+histogram gjeld
+summarize gjeld
+tabulate  sysselsatt fulldummy, summarize(gjeld)
+
+import fdb/INNTEKT_USIKRET_GJELD 2021-12-31 as USIKRET_GJELD
+
+histogram USIKRET_GJELD
+summarize USIKRET_GJELD
+tabulate  sysselsatt fulldummy, summarize(USIKRET_GJELD)
+tabulate  sysselsatt fulldummy, summarize(USIKRET_GJELD) freq
+
+replace USIKRET_GJELD = 0 if sysmiss (USIKRET_GJELD)
+histogram USIKRET_GJELD
+summarize USIKRET_GJELD
+tabulate  sysselsatt fulldummy, summarize(USIKRET_GJELD)
+tabulate  sysselsatt fulldummy, summarize(USIKRET_GJELD) freq
+
+import fdb/INNTEKT_BANKINNSK 2020-12-31 as BANKINNSK
+histogram BANKINNSK
+summarize BANKINNSK
+tabulate  sysselsatt fulldummy, summarize(BANKINNSK)
+
+replace BANKINNSK = 0 if sysmiss (BANKINNSK)
+
+histogram BANKINNSK
+summarize BANKINNSK
+tabulate  sysselsatt fulldummy, summarize(BANKINNSK)
+
+import fdb/INNTEKT_ASK_MARK 2021-12-31 as Aksjesparekonto
+histogram Aksjesparekonto
+summarize Aksjesparekonto
+tabulate  sysselsatt fulldummy, summarize(Aksjesparekonto) 
+tabulate  sysselsatt fulldummy, summarize(Aksjesparekonto) freq
+
+replace Aksjesparekonto = 0 if sysmiss (Aksjesparekonto)
+
+histogram Aksjesparekonto
+summarize Aksjesparekonto
+tabulate  sysselsatt fulldummy, summarize(Aksjesparekonto)
+tabulate  sysselsatt fulldummy, summarize(Aksjesparekonto) freq
+
+import fdb/INNTEKT_RENTUT 2021-12-31 as Renteutgifter
+histogram Renteutgifter
+summarize Renteutgifter
+tabulate  sysselsatt fulldummy, summarize(Renteutgifter) 
+
+replace Renteutgifter = 0 if sysmiss (Renteutgifter)
+
+histogram Renteutgifter
+summarize Renteutgifter
+tabulate  sysselsatt fulldummy, summarize(Renteutgifter)
+
+import fdb/INNTEKT_BOSTOTTE 2021-12-31 as BOSTOTTE
+histogram BOSTOTTE
+summarize BOSTOTTE
+tabulate  sysselsatt fulldummy, summarize(BOSTOTTE) 
+tabulate  sysselsatt fulldummy, summarize(BOSTOTTE) freq
+
+replace BOSTOTTE = 0 if sysmiss (BOSTOTTE)
+
+histogram BOSTOTTE
+summarize BOSTOTTE
+tabulate  sysselsatt fulldummy, summarize(BOSTOTTE)
+
+import fdb/INNTEKT_LONN 2021-12-31 as Lønnsinntekter
+histogram Lønnsinntekter
+summarize Lønnsinntekter
+tabulate  sysselsatt fulldummy, summarize(Lønnsinntekter) 
+tabulate  sysselsatt fulldummy, summarize(Lønnsinntekter) freq
+
+replace Lønnsinntekter = 0 if sysmiss (Lønnsinntekter)
+
+histogram Lønnsinntekter
+summarize Lønnsinntekter
+tabulate  sysselsatt fulldummy, summarize(Lønnsinntekter)
+
+import fdb/INNTEKT_OVERFOR 2021-12-31 as Overføringer
+histogram Overføringer
+summarize Overføringer
+tabulate  sysselsatt fulldummy, summarize(Overføringer) 
+tabulate  sysselsatt fulldummy, summarize(Overføringer) freq
+
+replace Overføringer = 0 if sysmiss (Overføringer)
+
+histogram Overføringer
+summarize Overføringer
+tabulate  sysselsatt fulldummy, summarize(Overføringer)
+
+
+import fdb/INNTEKT_NARINNT 2021-12-31 as næringsinntekter
+histogram næringsinntekter
+summarize næringsinntekter
+tabulate  sysselsatt fulldummy, summarize(næringsinntekter) 
+tabulate  sysselsatt fulldummy, summarize(næringsinntekter) freq
+
+replace næringsinntekter = 0 if sysmiss (næringsinntekter)
+
+histogram næringsinntekter
+summarize næringsinntekter
+tabulate  sysselsatt fulldummy, summarize(næringsinntekter)
+
+
+import fdb/INNTEKT_STUDIESTIPEND 2021-12-31 as Studiestipend
+histogram Studiestipend
+summarize Studiestipend
+tabulate  sysselsatt fulldummy, summarize(Studiestipend) 
+tabulate  sysselsatt fulldummy, summarize(Studiestipend) freq
+
+replace Studiestipend = 0 if sysmiss (Studiestipend)
+
+histogram Studiestipend
+summarize Studiestipend
+tabulate  sysselsatt fulldummy, summarize(Studiestipend)
+
+
+import fdb/INNTEKT_PRIM_MARK 2021-12-31 as primærbolig
+histogram primærbolig
+summarize primærbolig
+tabulate  sysselsatt fulldummy, summarize(primærbolig) 
+tabulate  sysselsatt fulldummy, summarize(primærbolig) freq
+
+replace primærbolig = 0 if sysmiss (primærbolig)
+
+histogram primærbolig
+summarize primærbolig
+tabulate  sysselsatt fulldummy, summarize(primærbolig)
+
+
+import fdb/INNTEKT_SEK_MARK 2021-12-31 as sekundærbolig
+histogram sekundærbolig
+summarize sekundærbolig
+tabulate  sysselsatt fulldummy, summarize(sekundærbolig) 
+tabulate  sysselsatt fulldummy, summarize(sekundærbolig) freq
+
+replace sekundærbolig = 0 if sysmiss (sekundærbolig)
+
+histogram sekundærbolig
+summarize sekundærbolig
+tabulate  sysselsatt fulldummy, summarize(sekundærbolig)
+
+
+
+
 
 //henter yrke per 4. kvartal 2021
 import fdb/REGSYS_ARB_YRKE_STYRK08 2021-11-16 as yrke
