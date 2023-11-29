@@ -1,0 +1,45 @@
+require no.ssb.fdb:25 as fdb
+create-dataset data
+import fdb/REGSYS_ARB_ARBKOMM 2022-11-16 as arbeidsted
+generate fylke = substr(arbeidsted,1,2)
+generate kommnr = substr(arbeidsted,1,4)
+keep if fylke == '50'| fylke == '16'| fylke  == '17'  | kommnr  == '1567'| kommnr  == '1571'
+
+//henter opplysninger om kjønn
+import fdb/BEFOLKNING_KJOENN as kjønn
+
+//henter alder
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+generate alder = 2022 - int (faarmnd/100)
+
+//lager aldersgrupper 
+generate aldersgruppe = '19 eller yngre'
+replace aldersgruppe = '20-29 år' if alder >= 20
+replace aldersgruppe = '30-39 år' if alder >= 30
+replace aldersgruppe = '40-49 år' if alder >= 40
+replace aldersgruppe = '50-59 år' if alder >= 50
+replace aldersgruppe = '60-66 år' if alder >= 60
+replace aldersgruppe = '67 og eldre ' if alder >= 67
+
+
+tabulate aldersgruppe,  missing
+tabulate aldersgruppe kjønn, summarize(alder) missing
+
+
+//henter opplysninger om yrke
+import fdb/REGSYS_ARB_YRKE_STYRK08 2015-11-16 as yrke
+generate yrke4 = substr(yrke,1,4)
+
+
+tabulate yrke kjønn, summarize(alder) missing
+tabulate yrke kjønn,  missing
+
+tabulate yrke aldersgruppe,  missing
+
+
+//fillterer ut et enkelt yrke  - justerer årtallene lengere opp for å ta ut data for ulike år
+keep if yrke4 == '8331'
+
+tabulate  aldersgruppe,  missing
+summarize alder
+tabulate yrke kjønn, summarize(alder) missing
