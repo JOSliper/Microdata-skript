@@ -1,0 +1,132 @@
+require no.ssb.fdb:25 as fdb
+create-dataset data
+
+//legger til bosted 2015
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2015-01-01 as bosted15
+generate fylke15 = substr(bosted15,1,2)
+generate kommnr15 = substr(bosted15,1,4)
+
+//legger til bosted 2022
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2022-01-01 as bosted22
+generate fylke22 = substr(bosted22,1,2)
+generate kommnr22 = substr(bosted22,1,4)
+
+//beholder kun de som bodde i Trøndelag både i 2015 og 2022
+keep if fylke15 == '50'| fylke15 == '16'| fylke15  == '17' | kommnr15  == '1567'| kommnr15  == '1571' 
+keep if fylke22 == '50'| fylke22 == '16'| fylke22  == '17' | kommnr22  == '1567'| kommnr22  == '1571' 
+
+// Legger til kjønn
+import fdb/BEFOLKNING_KJOENN as kjønn
+
+// Legger til Innvandringskategori
+import fdb/BEFOLKNING_INVKAT as kat
+generate Innvandringskategori = '3'
+replace Innvandringskategori = '1' if kat == 'B'
+replace Innvandringskategori = '2' if kat == 'C'
+replace Innvandringskategori = 'Ukjent ' if sysmiss(kat)
+define-labels Innvandringskategoritxt '1' 'Innvandrere' '2' 'Norskfødt med innvandrerforeldre' '3' 'Øvrig befolkning'
+assign-labels Innvandringskategori Innvandringskategoritxt
+
+//legger til utdanningsnivå
+import fdb/NUDB_BU 2021-08-01 as utd
+generate utd1 = substr(utd,1,1)
+//lager kategorier
+generate utdniv = '9'
+replace utdniv = '1' if utd1 == '1' | utd1 == '2'
+replace utdniv = '2' if utd1 == '3' | utd1 == '4' | utd1 == '5'
+replace utdniv = '3' if utd1 == '6'
+replace utdniv = '4' if utd1 == '7' | utd1 == '8' 
+define-labels utdnivtxt '1' 'Grunnskolenivå' '2'  'Videregående grunnopplæring' '3' 'Universitets og høgskolenivå kort' '4' 'Universitets og høgskolenivå lang' '9' 'Uoppgitt el ingen utdanning'
+assign-labels utdniv utdnivtxt
+
+
+//henter alder - bruker år -1 for å sikre at aldersfordelt befolkning samsvarere med tallene i statistikkbanken 
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+generate alder = 2014 - int (faarmnd/100)
+
+//lager aldersgrupper 5 årsgrupper
+generate aldersgruppe = '0'
+replace aldersgruppe = '0-4 år' if alder >= 0
+replace aldersgruppe = '5-9 år' if alder >= 5
+replace aldersgruppe = '10-14 år' if alder >= 10
+replace aldersgruppe = '15-19 år' if alder >= 15
+replace aldersgruppe = '20-24 år' if alder >= 20
+replace aldersgruppe = '25-29 år' if alder >= 25
+replace aldersgruppe = '30-34 år' if alder >= 30
+replace aldersgruppe = '35-39 år' if alder >= 35
+replace aldersgruppe = '40-44 år' if alder >= 40
+replace aldersgruppe = '45-49 år' if alder >= 45
+replace aldersgruppe = '50-54 år' if alder >= 50
+replace aldersgruppe = '55-59 år' if alder >= 55
+replace aldersgruppe = '60-64 år' if alder >= 60
+replace aldersgruppe = '65-69 år' if alder >= 65
+replace aldersgruppe = '70-74 år' if alder >= 70
+replace aldersgruppe = '75-79 år' if alder >= 75
+replace aldersgruppe = '80-84 år' if alder >= 80
+replace aldersgruppe = '85-89 år' if alder >= 85
+replace aldersgruppe = '90 eller eldre år' if alder >= 90
+replace aldersgruppe = 'Ukjent alder' if sysmiss(faarmnd)
+
+//filter alder
+keep if alder >= 25
+keep if alder < 60
+
+tabulate aldersgruppe Innvandringskategori
+
+//importerer husholdningens inntekt etter skatt per forbruksenhet, EU-ekvivalensskala
+import fdb/INNTEKT_HUSH_IES_EU 2015-12-31 as innt_forbruks15
+histogram innt_forbruks15
+summarize innt_forbruks15
+
+import fdb/INNTEKT_HUSH_IES_EU 2021-12-31 as innt_forbruks21
+histogram innt_forbruks21
+summarize innt_forbruks21
+
+//lager desiller 
+generate innt15_p10 = quantile(innt_forbruks15,10)
+generate innt21_p10 = quantile(innt_forbruks21,10)
+
+tabulate  innt15_p10 kjønn, summarize(innt_forbruks15)
+tabulate  innt21_p10 kjønn, summarize(innt_forbruks21)
+
+tabulate  innt15_p10 innt21_p10, missing
+
+tabulate  innt15_p10 Innvandringskategori, missing freq rowpct
+tabulate  innt21_p10 Innvandringskategori, missing freq rowpct
+
+tabulate  innt15_p10 innt21_p10 if Innvandringskategori == '1', missing 
+
+//regner ut differanse i intekt 2015-2021
+generate diff1521 =  innt_forbruks21 - innt_forbruks15
+histogram diff1521
+summarize diff1521
+
+tabulate Innvandringskategori kjønn, summarize(diff1521)
+
+tabulate aldersgruppe Innvandringskategori, summarize(diff1521)
+
+//lager kategorei  økning/nedgang inntekt
+generate endring = '2 -Uendret'
+replace endring = '1 - Opp ' if diff1521 > 0
+replace endring = '3 - Ned ' if diff1521 < 0
+
+tabulate Innvandringskategori aldersgruppe endring, missing
+
+tabulate Innvandringskategori aldersgruppe endring, summarize(diff1521)
+
+
+tabulate innt15_p10 innt21_p10, summarize(diff1521)
+
+tabulate aldersgruppe utdniv, summarize(diff1521)
+tabulate utdniv Innvandringskategori, summarize(diff1521)
+
+
+//legger til arbeidsmarkedsstatus 2015/2021
+import fdb/REGSYS_ARB_ARBMARK_STATUS 2015-11-16 as yrkstat2015
+import fdb/REGSYS_ARB_ARBMARK_STATUS 2021-11-16 as yrkstat2021
+
+tabulate yrkstat2015 yrkstat2021, missing
+tabulate yrkstat2015 yrkstat2021, summarize(diff1521)
+
+tabulate  innt15_p10 innt21_p10 if yrkstat2015 == '1', missing 
+tabulate  innt15_p10 innt21_p10 if yrkstat2015 == '1' & yrkstat2021 == '1' , missing
