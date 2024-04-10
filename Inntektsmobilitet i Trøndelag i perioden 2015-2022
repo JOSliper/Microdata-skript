@@ -1,0 +1,257 @@
+require no.ssb.fdb:28 as fdb
+create-dataset data
+
+//legger til bosted 2015
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2015-01-01 as bosted15
+generate fylke15 = substr(bosted15,1,2)
+generate kommnr15 = substr(bosted15,1,4)
+
+//legger til bosted 2022
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2023-01-01 as bosted23
+generate fylke23 = substr(bosted23,1,2)
+generate kommnr23 = substr(bosted23,1,4)
+
+//beholder kun de som bodde i Trøndelag både i ved inngangen av 2015 og utgangen av 2022(1.1.2023)
+keep if fylke15 == '50'| fylke15 == '16'| fylke15  == '17' | kommnr15  == '1567'| kommnr15  == '1571' 
+keep if fylke23 == '50'| fylke23 == '16'| fylke23  == '17' | kommnr23  == '1567'| kommnr23  == '1571' 
+
+// Legger til kjønn
+import fdb/BEFOLKNING_KJOENN as kjønn
+generate mann = 0
+replace mann = 1 if kjønn == '1'
+
+// Legger til Innvandringskategori
+import fdb/BEFOLKNING_INVKAT as kat
+generate Innvandringskategori = '3'
+replace Innvandringskategori = '1' if kat == 'B'
+replace Innvandringskategori = '2' if kat == 'C'
+replace Innvandringskategori = 'Ukjent ' if sysmiss(kat)
+define-labels Innvandringskategoritxt '1' 'Innvandrere' '2' 'Norskfødt med innvandrerforeldre' '3' 'Øvrig befolkning'
+assign-labels Innvandringskategori Innvandringskategoritxt
+generate innvandrer = 0
+replace innvandrer = 1 if Innvandringskategori == '1'
+
+
+//legger til utdanningsnivå til bruk senere i analysen
+import fdb/NUDB_BU 2022-09-01 as utd
+generate utd1 = substr(utd,1,1)
+//lager kategorier
+generate utdniv = '9'
+replace utdniv = '1' if utd1 == '1' | utd1 == '2'
+replace utdniv = '2' if utd1 == '3' | utd1 == '4' | utd1 == '5'
+replace utdniv = '3' if utd1 == '6'
+replace utdniv = '4' if utd1 == '7' | utd1 == '8' 
+define-labels utdnivtxt '1' 'Grunnskolenivå' '2'  'Videregående grunnopplæring' '3' 'Universitets og høgskolenivå kort' '4' 'Universitets og høgskolenivå lang' '9' 'Uoppgitt el ingen utdanning'
+assign-labels utdniv utdnivtxt
+
+destring utd1
+tabulate utd1
+
+generate Høyut = 0
+replace Høyut = 1 if utdniv == '3'|  utdniv == '4'
+
+//henter alder - bruker år -1 for å sikre at aldersfordelt befolkning samsvarere med tallene i statistikkbanken 
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+generate alder = 2014 - int(faarmnd/100)
+
+//lager aldersgrupper 5 årsgrupper
+generate aldersgruppe ='0'
+replace aldersgruppe = '0-25 år' if alder >= 0
+replace aldersgruppe = '25-29 år' if alder >= 25
+replace aldersgruppe = '30-34 år' if alder >= 30
+replace aldersgruppe = '35-39 år' if alder >= 35
+replace aldersgruppe = '40-44 år' if alder >= 40
+replace aldersgruppe = '45-49 år' if alder >= 45
+replace aldersgruppe = '50-54 år' if alder >= 50
+replace aldersgruppe = '55-59 år' if alder >= 55
+replace aldersgruppe = '60 og eldre år' if alder >= 60
+replace aldersgruppe = 'Ukjent alder' if sysmiss(faarmnd)
+
+//filter alder slik at jeg har personer som er 25-59 år i 2015/ 33-67 i 2022 
+keep if alder >= 25
+keep if alder < 60
+
+tabulate aldersgruppe Innvandringskategori, missing
+
+//importerer husholdningens inntekt etter skatt per forbruksenhet, EU-ekvivalensskala
+import fdb/INNTEKT_HUSH_IES_EU 2015-12-31 as innt_forbruks15
+histogram innt_forbruks15
+summarize innt_forbruks15 
+
+import fdb/INNTEKT_HUSH_IES_EU 2022-12-31 as innt_forbruks22
+histogram innt_forbruks22
+summarize innt_forbruks22
+
+tabulate Innvandringskategori kjønn, summarize(innt_forbruks15)
+tabulate aldersgruppe Innvandringskategori, summarize(innt_forbruks15)
+
+tabulate Innvandringskategori kjønn, summarize(innt_forbruks22)
+tabulate aldersgruppe Innvandringskategori, summarize(innt_forbruks22)
+
+hexbin innt_forbruks15 innt_forbruks22
+hexbin innt_forbruks15 innt_forbruks22, gridsize(25) 
+
+//lager desiller 
+generate innt15_p10 = quantile(innt_forbruks15,10)
+generate innt22_p10 = quantile(innt_forbruks22,10)
+
+tabulate innt15_p10 , summarize(innt_forbruks15)
+tabulate innt22_p10 , summarize(innt_forbruks22)
+tabulate innt15_p10 , summarize(innt_forbruks22)
+
+boxplot innt_forbruks22, over(innt15_p10)
+
+boxplot innt_forbruks15, over(innt15_p10)
+
+tabulate innt15_p10, summarize(innt_forbruks22) mean p25 p50 p75
+
+//sammenligner plassering i desill 2015 og 2022
+tabulate  innt15_p10 innt22_p10, missing
+tabulate  innt15_p10 innt22_p10 if Innvandringskategori == '1', missing 
+tabulate  innt15_p10 innt22_p10, summarize(alder) 
+
+//deskriptive tableller på desiller
+tabulate  innt15_p10 kjønn, missing
+tabulate  innt15_p10 Innvandringskategori, missing
+tabulate  innt15_p10 utdniv, missing
+
+tabulate  innt22_p10 kjønn, missing
+tabulate  innt22_p10 Innvandringskategori, missing
+tabulate  innt22_p10 utdniv, missing
+
+tabulate  innt15_p10 Innvandringskategori, missing freq rowpct
+tabulate  innt22_p10 Innvandringskategori, missing freq rowpct
+
+//desiler nummering 
+generate desnum2015 = substr(innt15_p10,1,1)
+destring desnum2015
+
+generate desnum2022 = substr(innt22_p10,1,1)
+destring desnum2022
+
+//regner ut differanse i inntekt 2015-2022
+generate diff1522 =  innt_forbruks22 - innt_forbruks15
+histogram diff1522
+summarize diff1522
+
+hexbin innt_forbruks15 diff1522
+hexbin innt_forbruks15 diff1522, gridsize(25) 
+
+tabulate Innvandringskategori kjønn, summarize(diff1522)
+tabulate aldersgruppe Innvandringskategori, summarize(diff1522)
+
+//justerer for inflasjon (KPI 22,8 %) Inntekt 2015 omregnet til 2022 kroner
+generate Justert1 = innt_forbruks15*1.228
+generate innt15_inflasjonsjustert =round(Justert1, 3)
+
+histogram innt15_inflasjonsjustert
+summarize innt15_inflasjonsjustert
+hexbin  innt15_inflasjonsjustert innt_forbruks22, gridsize(25) 
+
+//regner ut inflasjonsjustert differanse i inntekt 2015-2022
+generate Inf_diff1522 =  innt_forbruks22 - innt15_inflasjonsjustert
+summarize Inf_diff1522 
+histogram Inf_diff1522 
+hexbin innt15_inflasjonsjustert Inf_diff1522
+hexbin innt15_inflasjonsjustert Inf_diff1522, gridsize(25)
+
+//lager desiller av innt15_inflasjonsjustert
+generate innt15_inflasjonsjustert_p10 = quantile(innt15_inflasjonsjustert,10)
+
+tabulate  innt15_inflasjonsjustert_p10 innt22_p10, missing
+
+//lager kategor i på  økning/nedgang inntekt (nomminell) 
+generate endring = '2 -Uendret'
+replace endring = '1 - Opp ' if diff1522 > 0
+replace endring = '3 - Ned ' if diff1522 < 0
+replace endring = '4-Ukjent ' if sysmiss(diff1522)
+
+//lager kategor i på  økning/nedgang inntekt (justert) 
+generate endringI = '2 -Uendret'
+replace endringI = '1 - Opp ' if Inf_diff1522 > 0
+replace endringI = '3 - Ned ' if Inf_diff1522 < 0
+replace endringI = '4- Ukjent ' if sysmiss(Inf_diff1522)
+
+tabulate  endring endringI, missing freq colpct rowpct
+
+tabulate  endring endringI if (innt_forbruks15 >0 & innt_forbruks22 >0), missing freq colpct rowpct
+
+tabulate Innvandringskategori aldersgruppe endring, missing
+
+tabulate Innvandringskategori aldersgruppe endring, summarize(diff1522)
+
+tabulate innt15_p10 innt22_p10, summarize(diff1522)
+
+tabulate aldersgruppe utdniv, summarize(diff1522)
+tabulate utdniv Innvandringskategori, summarize(diff1522)
+
+//legger til arbeidsmarkedsstatus 2015/2021
+import fdb/REGSYS_ARB_ARBMARK_STATUS 2015-11-16 as yrkstat2015
+import fdb/REGSYS_ARB_ARBMARK_STATUS 2022-11-16 as yrkstat2022
+
+generate lønn15 = 0
+replace lønn15 = 1 if yrkstat2015 == '1'| yrkstat2015 == '2'
+
+tabulate lønn15 , summarize(diff1522)
+
+generate lønn22 = 0
+replace lønn22 = 1 if yrkstat2022 == '1'| yrkstat2022 == '2'
+
+tabulate lønn22 , summarize(diff1522)
+
+generate lønndiff = lønn22 -lønn15
+
+tabulate lønndiff lønn15, summarize(diff1522)
+tabulate lønn22 lønn15, summarize(diff1522)
+tabulate lønn22 lønn15, summarize(Inf_diff1522)
+
+tabulate yrkstat2015 yrkstat2022, missing
+tabulate yrkstat2015 yrkstat2022, summarize(diff1522)
+
+tabulate  innt15_p10 innt22_p10 if yrkstat2015 == '1', missing 
+tabulate  innt15_p10 innt22_p10 if yrkstat2015 == '1' & yrkstat2022 == '1' , missing
+
+// legger til opplysninger om familiestørrelse
+
+import fdb/BEFOLKNING_PERS_I_HUSHNR 2015-01-01 as Hus2015
+import fdb/BEFOLKNING_PERS_I_HUSHNR 2023-01-01 as Hus2022
+
+tabulate Hus2015 Hus2022
+tabulate Hus2015 Hus2022, summarize(Inf_diff1522)
+generate husdiff = Hus2022 -Hus2015
+
+//regresjonsanalyser 
+correlate diff1522 Inf_diff1522 innt_forbruks15 innt_forbruks22 desnum2015 desnum2022 mann innvandrer alder lønn15  lønn22 lønndiff Hus2015 Hus2022 husdiff Høyut utd1
+
+
+regress  desnum2022 desnum2015  
+regress  desnum2022 desnum2015 diff1522
+
+regress diff1522 innt_forbruks15
+regress diff1522 innt_forbruks15 mann
+regress diff1522 innt_forbruks15 mann alder
+regress diff1522 innt_forbruks15 mann alder innvandrer
+regress diff1522 innt_forbruks15 mann alder innvandrer lønn15
+regress diff1522 innt_forbruks15 mann alder innvandrer lønn15 lønndiff
+regress diff1522 innt_forbruks15 mann alder innvandrer lønn15 lønndiff utd1
+regress diff1522 innt_forbruks15 mann alder innvandrer lønn15 lønndiff utd1 Hus2015
+regress diff1522 innt_forbruks15 mann alder innvandrer lønn15 lønndiff utd1 Hus2015 husdiff
+regress diff1522 innt_forbruks15 mann alder innvandrer lønn15 lønndiff utd1 Hus2015 husdiff 
+
+
+regress diff1522  mann
+regress diff1522  mann alder
+regress diff1522  mann alder lønn15
+regress diff1522  mann alder lønn15 lønndiff
+regress diff1522  mann alder lønn15 lønndiff utd1
+regress diff1522  mann alder lønn15 lønndiff utd1 Hus2015
+regress diff1522  mann alder lønn15 lønndiff utd1 Hus2015 husdiff
+
+regress innt_forbruks22 innt_forbruks15
+regress innt_forbruks22 innt_forbruks15 mann
+regress innt_forbruks22 innt_forbruks15 mann alder
+regress innt_forbruks22 innt_forbruks15 mann alder lønn15
+regress innt_forbruks22 innt_forbruks15 mann alder lønn15 lønndiff
+regress innt_forbruks22 innt_forbruks15 mann alder lønn15 lønndiff utd1
+regress innt_forbruks22 innt_forbruks15 mann alder lønn15 lønndiff utd1 Hus2015
+regress innt_forbruks22 innt_forbruks15 mann alder lønn15 lønndiff utd1 Hus2015 husdiff
