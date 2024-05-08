@@ -1,0 +1,86 @@
+skript bak denne analysen: https://trondelagitall.no/artikkel/hvem-brukte-stemmeretten-ved-kommune-og-fylkestingsvalget-i-2023
+
+require no.ssb.fdb:30 as fdb
+create-dataset persondata
+
+//tar ut personer som står i mantallet - stemmeberetigede
+import fdb/VALG_MANNTALL_KOMMNR 2023-09-11 as mantall
+generate Vfylke = substr(mantall,1,2)
+generate Vkommnr = substr(mantall,1,4)
+
+
+//tar ut tall på fylkesnivå for å se om valgdeltagesen jeg får stemmer med statistikken fra valgdirketoratet. 
+import fdb/VALG_STEMT_SSB 2023-09-11 as stemt
+tabulate Vfylke stemt, missing
+tabulate Vfylke stemt, missing rowpct
+
+//filterer ut bare Trøndelag (ikke i bruk)
+keep if Vfylke == '50'
+
+//legger til kjønn
+import fdb/BEFOLKNING_KJOENN as kjønn
+
+//henter alder - bruker år -1 for å sikre at aldersfordelt befolkning samsvarere med tallene i statistikkbanken 
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+generate alder = 2023 - int(faarmnd/100)
+
+
+tabulate alder stemt, missing 
+tabulate alder stemt if kjønn =='1', missing 
+tabulate alder stemt if kjønn =='2', missing 
+
+
+// Legger til Innvandringskategori
+import fdb/BEFOLKNING_INVKAT as kat
+generate Innvandringskategori = '3'
+replace Innvandringskategori = '1' if kat == 'B'
+replace Innvandringskategori = '2' if kat == 'C'
+define-labels Innvandringskategoritxt '1' 'Innvandrere' '2' 'Norskfødt med innvandrerforeldre' '3' 'Øvrig befolkning'
+assign-labels Innvandringskategori Innvandringskategoritxt
+
+tabulate Innvandringskategori stemt, missing 
+tabulate Innvandringskategori stemt, missing rowpct
+tabulate Innvandringskategori stemt kjønn, missing 
+
+tabulate alder stemt if Innvandringskategori =='1'| Innvandringskategori =='2', missing 
+
+tabulate alder stemt if Innvandringskategori =='3', missing 
+
+
+//legger til utdanningsnivå
+import fdb/NUDB_BU 2022-08-31 as utd
+generate utd1 = substr(utd,1,1)
+generate utdniv1 = '1'
+replace utdniv1 = '2' if utd1 == '1' | utd1 == '2'
+replace utdniv1 = '3' if utd1 == '3' | utd1 == '4' 
+replace utdniv1 = '4' if utd1 == '5' 
+replace utdniv1 = '5' if utd1 == '6' 
+replace utdniv1 = '6' if utd1 == '7' 
+replace utdniv1 = '7' if utd1 == '8' 
+define-labels utdniv1txt '1' 'Uoppgitt el ingen utdanning' '2' 'Grunnskolenivå' '3'  'Videregående utdanning' '4' 'Fagskole  utdanning'  '5'  'Universitets- og høgskole lavere nivå' '6'  'Universitets- og høgskole høyere nivå' '7'  'Phd'
+assign-labels utdniv1 utdniv1txt
+
+tabulate utdniv1 stemt, missing 
+tabulate utdniv1 stemt, missing rowpct
+
+tabulate utdniv1 stemt kjønn, missing 
+tabulate utdniv1 stemt if Innvandringskategori =='1'| Innvandringskategori =='2', missing 
+tabulate utdniv1 stemt if Innvandringskategori =='3', missing 
+
+
+//legger til arbeidsmarkedstatus
+import fdb/REGSYS_ARB_ARBMARK_STATUS 2023-11-16 as ARBstatus
+tabulate ARBstatus stemt, missing 
+tabulate ARBstatus stemt, missing rowpct
+
+tabulate stemt  ARBstatus utdniv1, missing
+tabulate utdniv1 ARBstatus, missing
+
+tabulate stemt  ARBstatus utdniv1 if alder >= 20 & alder <= 66, missing
+tabulate utdniv1 ARBstatus if alder >= 20 & alder <= 66, missing
+
+//leger til yrke 
+import fdb/REGSYS_ARB_YRKE_STYRK08 2023-11-16 as yrke
+
+tabulate yrke stemt if ARBstatus =='1', missing 
+tabulate yrke stemt if ARBstatus =='1', missing rowpct
