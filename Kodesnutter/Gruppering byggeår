@@ -1,0 +1,18 @@
+import fdb/BOFORHOLD_BYGGEAAR 2023-01-01 as BYGGEAAR
+
+//lager gruppering for byggeår 
+generate BYGGEAARGruppe = '0'
+replace BYGGEAARGruppe = '1900 og tidligere' if BYGGEAAR >1
+replace BYGGEAARGruppe = '1901-1920' if BYGGEAAR >= 1901
+replace BYGGEAARGruppe = '1921-1940' if BYGGEAAR >= 1921
+replace BYGGEAARGruppe = '1941-1945' if BYGGEAAR >= 1941
+replace BYGGEAARGruppe = '1946-1960' if BYGGEAAR >= 1946
+replace BYGGEAARGruppe = '1961-1970' if BYGGEAAR >= 1961
+replace BYGGEAARGruppe = '1971-1980' if BYGGEAAR >= 1971
+replace BYGGEAARGruppe = '1981-1990' if BYGGEAAR >= 1981
+replace BYGGEAARGruppe = '1991-2000' if BYGGEAAR >= 1991
+replace BYGGEAARGruppe = '1991-2000' if BYGGEAAR >= 1991
+replace BYGGEAARGruppe = '2001-2010' if BYGGEAAR >= 2001
+replace BYGGEAARGruppe = '2011-2020' if BYGGEAAR >= 2011
+replace BYGGEAARGruppe = '2021 og etter' if BYGGEAAR >= 2021
+replace BYGGEAARGruppe = 'Ukjent alder' if sysmiss(BYGGEAAR)
