@@ -1,0 +1,33 @@
+//Kode brukt for å hente data på yrker fordelt på invandringskategori brukt på Trøndelag i tall. 
+//tar ut data for en årgang om gangen
+
+require no.ssb.fdb:30 as fdb
+create-dataset data
+
+//henter data på arbeidsted og filterter ut personer som har arbeidsted i Trøndelag 
+import fdb/REGSYS_ARB_ARBKOMM 2023-11-16 as arbeidsted
+generate fylke = substr(arbeidsted,1,2)
+generate kommnr = substr(arbeidsted,1,4)
+keep if fylke == '50'| fylke == '16'| fylke  == '17' | kommnr  == '1567'| kommnr  == '1571' 
+
+//henter opplysinger om yrke
+import fdb/REGSYS_ARB_YRKE_STYRK08 2023-11-16 as yrke
+generate yrkenr = substr(yrke,1,4)
+
+//Legger til yrkesstatus
+import fdb/REGSYS_ARB_ARBMARK_STATUS 2023-11-16 as yrkstat
+
+// Legger til Innvandringskategori
+import fdb/BEFOLKNING_INVKAT as kat
+generate Innvandringskategori = '2'
+replace Innvandringskategori = '1' if kat == 'B'
+define-labels Innvandringskategoritxt '1' 'Innvandrere' '2' 'Øvrig befolkning'
+assign-labels Innvandringskategori Innvandringskategoritxt
+
+tabulate yrkstat Innvandringskategori, missing
+
+
+//filtrerer ut kun lønnstakerer. 
+keep if yrkstat == '1'
+
+tabulate yrke Innvandringskategori, missing
