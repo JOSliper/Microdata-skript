@@ -1,0 +1,36 @@
+require no.ssb.fdb:30 as fdb
+create-dataset data
+
+//tar ut år for føstegang bosatt i Norge
+import fdb/BEFOLKNING_FORSTDATO  as FORSTDATO
+generate år = substr(FORSTDATO,1,4)
+
+//beholder kun de som var bosatt i Norge første gang i 2023
+keep if år == '2023'
+
+// Legger til Innvandringskategori
+import fdb/BEFOLKNING_INVKAT as kat
+generate Innvandringskategori = '2'
+replace Innvandringskategori = '1' if kat == 'B'
+define-labels Innvandringskategoritxt '1' 'Innvandrere' '2' 'Øvrig befolkning'
+assign-labels Innvandringskategori Innvandringskategoritxt
+
+//test på at jeg bare får med innvandrere
+tabulate Innvandringskategori, missing
+
+//henter bosted per 1.1.2024
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2024-01-01 as bosted
+generate fylke = substr(bosted,1,2)
+generate kommnr = substr(bosted,1,4)
+
+//beholder bare personer bosatt i Trøndelag i per 1.1.2024
+keep if fylke == '50'
+
+tabulate bosted, missing
+
+//henter fødeland
+import fdb/BEFOLKNING_FODELAND as fødeland
+
+tabulate fødeland, missing rowsort
+
+tabulate fødeland bosted, missing rowsort
