@@ -31,3 +31,13 @@ tabulate yrkstat Innvandringskategori, missing
 keep if yrkstat == '1'
 
 tabulate yrke Innvandringskategori, missing
+
+//legger til innvandringsgrunn
+import fdb/BEFOLKNING_INNGRUNN1 as grunn
+
+//filtrerer ut kun innvandrere. 
+keep if Innvandringskategori == '1'
+
+tabulate grunn, missing 
+
+tabulate  yrke grunn, missing 
