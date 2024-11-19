@@ -1,8 +1,17 @@
+//fylker 2020
 //henter bostedskommuen og lager fylker
-import fdb/BEFOLKNING_KOMMNR_FORMELL 2022-01-01 as bosted2022
-generate BFylke2022 = substr(bosted2022,1,2)
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2020-01-01 as bosted2020
+generate BFylke2002 = substr(bosted2020,1,2)
 define-labels botxt '03' 'Oslo' '11' 'Rogaland' '15' 'Møre og Romsdal' '18'	'Nordland''30''Viken' '34''Innlandet''38' 'Vestfold og Telemark''42'	'Agder''46'	'Vestland' '50''Trøndelag'	'54''Troms og Finnmark'
-assign-labels BFylke2022 botxt
+assign-labels BFylke2020 botxt
+
+
+//fylker 2024
+//henter bostedskommuen og lager fylker
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2024-01-01 as bosted2024
+generate BFylke2024 = substr(bosted2024,1,2)
+define-labels botxt '03' 'Oslo' '11' 'Rogaland' '15' 'Møre og Romsdal' '18' 'Nordland'  '31''Østfold' '32''Akershus'  '33''Buskerud'  '34' 'Innlandet' '39' 'Vestfold'  '40' 'Telemark' '42' 'Agder' '46''Vestland' '50' 'Trøndelag'  '55' 'Troms'  '56' 'Finnmark' 
+assign-labels BFylke2024 botxt
 
 
 //henter personer som bor i Trøndelag
