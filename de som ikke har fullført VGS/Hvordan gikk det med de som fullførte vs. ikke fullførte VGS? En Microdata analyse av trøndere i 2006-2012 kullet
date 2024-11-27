@@ -1,0 +1,459 @@
+require no.ssb.fdb:34 as fdb
+
+create-dataset vgselever
+import fdb/NUDB_AAR_NY_I_VID_UTD_LOV as første_gang_reg_vgs
+keep if første_gang_reg_vgs == 200608
+
+import fdb/NUDB_AAR_FORSTE_FULLF_VS_LOV as første_gang_fullført_vgs
+import fdb/NUDB_SEMESTER_FFF_VS_LOV as antall_semestre_vgs
+
+import fdb/NUDB_AAR_FORSTE_FULLF_VSA_LOV as første_gang_fullført_allmenn
+import fdb/NUDB_AAR_FORSTE_FULLF_VSY_LOV as første_gang_fullført_yrkesfag
+import fdb/NUDB_SEMESTER_FFF_VSA_LOV as antall_semestre_allmenn
+import fdb/NUDB_SEMESTER_FFF_VSY_LOV as antall_semestre_yrkesfag
+
+tabulate antall_semestre_vgs, missing
+tabulate første_gang_fullført_vgs, missing
+
+tabulate antall_semestre_allmenn, missing
+tabulate første_gang_fullført_allmenn, missing
+
+tabulate antall_semestre_yrkesfag, missing
+tabulate første_gang_fullført_yrkesfag, missing
+
+//Kobler på kursdata for å kontrollere for om noen fortsatt studerer etter endt måleperiode
+create-dataset kursdata
+import fdb/NUDB_KURS_NUS 2012-09-01 as kurstype
+import fdb/NUDB_KURS_KOMP 2012-09-01 as vgs_kompetanse
+import fdb/NUDB_KURS_FNR as personid
+destring kurstype vgs_kompetanse
+collapse(count) kurstype -> ant_kurs (max) kurstype -> høyeste_nivå (max) vgs_kompetanse, by(personid)
+merge ant_kurs høyeste_nivå vgs_kompetanse into vgselever
+
+use vgselever
+generate under_opplæring = ant_kurs > 0
+
+summarize høyeste_nivå
+replace høyeste_nivå = int(høyeste_nivå/100000)
+
+//Lager gjensidig utelukkende statuser for fullføring av VGS
+generate status = 1 if antall_semestre_allmenn <= 6 | antall_semestre_yrkesfag <= 8
+replace status = 2 if antall_semestre_allmenn > 6 & antall_semestre_allmenn < 10| antall_semestre_yrkesfag > 8 & antall_semestre_yrkesfag < 12
+
+//replace status = 2 if antall_semestre_allmenn > 6 | antall_semestre_yrkesfag > 10
+//replace status = 3 if ....  //fullført grunnkompetanse innen tidsrammen på 5-6 år
+replace status = 4 if !inlist(status,1,2) & under_opplæring & inrange(høyeste_nivå,3,5)
+replace status = 5 if !inlist(status,1,2) & under_opplæring & inrange(høyeste_nivå,6,7)
+replace status = 6 if !inlist(status,1,2) & !under_opplæring
+
+define-labels statuslbl 1 'Fullført på normert tid' 2 'Fullført innen 5/6 år' 3 'Fullført grunnkompetanse innen 5-6 år' 4 'Ikke fullført innen tidsrammen, men fortsatt under opplæring på VGS-nivå' 5 'Ikke fullført innen tidsrammen, men under opplæring på UH-nivå' 6 'Ikke fullført, og avbrutt utdanning'
+assign-labels status statuslbl
+
+tabulate status, missing
+tabulate vgs_kompetanse status, missing
+
+
+
+//.................................................
+// legger til innvandringskategori og alder for å se om tallene ser logiske ut. 
+
+// Legger til Innvandringskategori
+import fdb/BEFOLKNING_INVKAT as kat
+generate Innvandringskategori = '3'
+replace Innvandringskategori = '1' if kat == 'B'
+replace Innvandringskategori = '2' if kat == 'C'
+//replace Innvandringskategori = 'Ukjent ' if sysmiss(kat)
+define-labels Innvandringskategoritxt '1' 'Innvandrere' '2' 'Norskfødt med innvandrerforeldre' '3' 'Øvrig befolkning'
+assign-labels Innvandringskategori Innvandringskategoritxt
+
+tabulate status Innvandringskategori, missing rowpct colpct freq
+
+//henter alder - bruker år -1 for å sikre at aldersfordelt befolkning samsvarere med tallene i statistikkbanken 
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+generate alder2006 = 2005 - int(faarmnd/100)
+
+tabulate status Innvandringskategori, summarize(alder2006)
+
+//begrenser utvalget til Trøndelag 
+
+//henter bostedskommune - ved  starten av perioden 
+import fdb/BOSATTEFDT_BOSTED 2006-08-01 as bosted
+generate fylke = substr(bosted,1,2)
+generate kommnr = substr(bosted,1,4)
+keep if fylke == '50'| fylke == '16'| fylke  == '17'  | kommnr  == '1567'| kommnr  == '1571'
+
+tabulate status Innvandringskategori, missing rowpct colpct freq
+
+//filterer bort 5 - Ikke fullført innen tidsrammen, men under opplæring på UH-nivå
+drop  if status == 5
+
+tabulate status
+
+// lager dummy fullført/ ikke fullført. - velger å plassere 5 - Ikke fullført innen tidsrammen, men under opplæring på UH-nivå
+generate fullført = '3 - Ikke fullført' 
+replace fullført = '1 - Fullført normert tid' if status == 1 
+replace fullført = '2 - Fullført 5/6 år ' if status == 2
+
+generate fullført2 = '2 - Ikke fullført' 
+replace fullført2 = '1 - Fullført' if status == 1 |status == 2
+
+
+tabulate fullført Innvandringskategori, missing rowpct colpct freq
+
+//.......................................
+//hvordan har det gått med disse personene 
+
+
+import fdb/BEFOLKNING_STATUSKODE 2024-01-01 as STATUSKODE
+
+tabulate STATUSKODE fullført, missing colpct rowpct freq
+
+sankey fullført STATUSKODE
+
+keep if STATUSKODE == '1'
+
+//legger til utdanningsnivå i dag
+import fdb/NUDB_BU 2023-08-01 as utd
+generate utd1 = substr(utd,1,1)
+//lager kategorier
+generate utdniv = '9'
+replace utdniv = '1' if utd1 == '1' | utd1 == '2'
+replace utdniv = '2' if utd1 == '3' | utd1 == '4' | utd1 == '5'
+replace utdniv = '3' if utd1 == '6'
+replace utdniv = '4' if utd1 == '7' | utd1 == '8' 
+define-labels utdnivtxt '1' 'Grunnskolenivå' '2'  'Videregående grunnopplæring' '3' 'Universitets og høgskolenivå kort' '4' 'Universitets og høgskolenivå lang' '9' 'Uoppgitt el ingen utdanning'
+assign-labels utdniv utdnivtxt
+
+tabulate utdniv fullført, missing 
+
+//arbeidstatus
+import fdb/REGSYS_ARB_ARBMARK_STATUS 2023-11-16 as yrkstat
+
+tabulate yrkstat fullført, missing 
+
+generate Sysselsatt  = '2 - Ikke sysselsatte' 
+replace Sysselsatt = '1 - sysselsatt' if yrkstat == '1' |  yrkstat == '2'
+
+tabulate Sysselsatt fullført, missing 
+
+
+//henter yrke per 4. kvartal 2023
+import fdb/REGSYS_ARB_YRKE_STYRK08 2023-11-16 as yrke
+
+//keep if fullført2 == '1 - Fullført'
+tabulate Sysselsatt fullført, missing
+
+tabulate yrke, rowpct bottom(20)
+tabulate yrke
+
+
+tabulate yrke if fullført2 == '1 - Fullført'
+
+//tabulate yrke fullført2, rowsort bottom(20)
+//tabulate yrke if fullført2 == '2 - Ikke fullført', rowsort bottom(10)
+
+
+//henter arbeidstid
+import fdb/REGSYS_ARB_ARBEIDSTID 2023-11-16 as atid
+summarize atid  
+histogram atid
+
+tabulate utdniv fullført, summarize(atid)
+
+//Gruppere atid i  intervaller
+generate atidint = 'ikke lønnstaker'
+replace atidint = '0-15' if atid > 0
+replace atidint = '15-20' if atid > 15
+replace atidint = '20-25' if atid > 20
+replace atidint = '25-30' if atid > 25
+replace atidint = '30-35' if atid > 30
+replace atidint = '35-37.5' if atid > 35
+replace atidint = 'Over 37.5' if atid > 37.50
+
+barchart(percent) fullført, over(atidint) stack
+barchart(percent) atidint, over(fullført) stack
+
+tabulate atidint fullført, missing
+
+
+//legger til inntekt 
+import fdb/INNTEKT_WSAMINNT 2022-12-31 as inntekt
+summarize inntekt
+// legger til arbeidstatus engang til - nå med samme år som innteksdataene
+import fdb/REGSYS_ARB_ARBMARK_STATUS 2022-11-16 as yrkstat2
+generate Sysselsatt2  = '2 - Ikke sysselsatte' 
+replace Sysselsatt2 = '1 - sysselsatt' if yrkstat2 == '1' |  yrkstat2 == '2'
+
+tabulate Sysselsatt fullført, missing 
+
+//sjekk på om det er sor bevegelse mellom grupper. 
+tabulate Sysselsatt2  Sysselsatt, missing
+
+tabulate fullført Sysselsatt2 , summarize(inntekt)
+tabulate fullført Sysselsatt2 utdniv, summarize(inntekt)
+tabulate fullført Sysselsatt2 utdniv, missing
+
+histogram inntekt if fullført2 == '1 - Fullført'
+summarize inntekt if fullført2 == '1 - Fullført'
+histogram inntekt if fullført2 == '2 - Ikke fullført'
+summarize inntekt if fullført2 == '2 - Ikke fullført'
+
+
+//legger til formue og gjeld
+import fdb/SKATT_NETTOFORMUE 2022-12-31 as netto_formue
+histogram netto_formue
+summarize netto_formue
+tabulate  Sysselsatt2 fullført, summarize(netto_formue) freq mean p50
+tabulate  Sysselsatt2 fullført, summarize(netto_formue) 
+
+//merk bruker bergnet bruttoformue og ikke skattepliktig formue 
+import fdb/INNTEKT_BER_BRFORM 2022-12-31 as brutto_formue
+histogram brutto_formue
+summarize brutto_formue
+tabulate  Sysselsatt2 fullført, summarize(brutto_formue)
+
+import fdb/INNTEKT_BER_REALKAP 2022-12-31 as REALKAP
+histogram REALKAP
+summarize REALKAP
+tabulate  Sysselsatt2 fullført, summarize(REALKAP)
+
+//Litt syssmiss på realkapital - antar jeg at de kan settes til 0
+replace REALKAP = 0 if sysmiss(REALKAP)
+histogram REALKAP
+summarize REALKAP
+tabulate  Sysselsatt2 fullført, summarize(REALKAP)
+
+import fdb/SKATT_GJELD 2022-12-31 as gjeld
+histogram gjeld
+summarize gjeld
+tabulate  Sysselsatt2 fullført, summarize(gjeld)
+
+//også her er det en litt syssmis som jeg antar at er 0
+replace gjeld = 0 if sysmiss(gjeld)
+
+histogram gjeld
+summarize gjeld
+tabulate  Sysselsatt2 fullført, summarize(gjeld)
+
+//lager ny nettoformues variabel - jfr epost utveklsing med microdata om ulik håndtering av dataene i variabelen
+generate nettforume = brutto_formue - gjeld
+histogram nettforume
+summarize nettforume
+tabulate  Sysselsatt2 fullført, summarize(nettforume)
+
+import fdb/INNTEKT_USIKRET_GJELD 2022-12-31 as USIKRET_GJELD
+
+histogram USIKRET_GJELD
+summarize USIKRET_GJELD
+tabulate  Sysselsatt2 fullført, summarize(USIKRET_GJELD)
+
+//syssmiss satt til 0
+replace USIKRET_GJELD = 0 if sysmiss(USIKRET_GJELD)
+histogram USIKRET_GJELD
+summarize USIKRET_GJELD
+tabulate  Sysselsatt2 fullført, summarize(USIKRET_GJELD)
+tabulate  Sysselsatt2 fullført if USIKRET_GJELD > 0 , missing
+
+import fdb/SKATT_BANKINNSKUDD 2022-12-31 as BANKINNSK
+histogram BANKINNSK
+summarize BANKINNSK
+tabulate  Sysselsatt2 fullført, summarize(BANKINNSK)
+
+
+import fdb/INNTEKT_ASK_MARK 2022-12-31 as Aksjesparekonto
+histogram Aksjesparekonto
+summarize Aksjesparekonto
+tabulate  Sysselsatt2 fullført, summarize(Aksjesparekonto) 
+tabulate  Sysselsatt2 fullført, summarize(Aksjesparekonto) freq
+
+replace Aksjesparekonto = 0 if sysmiss(Aksjesparekonto)
+
+histogram Aksjesparekonto
+summarize Aksjesparekonto
+tabulate  Sysselsatt2 fullført, summarize(Aksjesparekonto)
+
+
+import fdb/INNTEKT_RENTUT 2022-12-31 as Renteutgifter
+histogram Renteutgifter
+summarize Renteutgifter
+tabulate  Sysselsatt2 fullført, summarize(Renteutgifter) 
+//syssmiss satt til 0
+replace Renteutgifter = 0 if sysmiss(Renteutgifter)
+
+histogram Renteutgifter
+summarize Renteutgifter
+tabulate  Sysselsatt2 fullført, summarize(Renteutgifter)
+
+import fdb/INNTEKT_LONN 2022-12-31 as Lønnsinntekter
+histogram Lønnsinntekter
+summarize Lønnsinntekter
+tabulate  Sysselsatt2 fullført, summarize(Lønnsinntekter) 
+//test på hvor mange ikke sysselsatte som hadde lønnsinntekt 
+tabulate  Sysselsatt2 fullført, summarize(Lønnsinntekter) freq
+
+replace Lønnsinntekter = 0 if sysmiss(Lønnsinntekter)
+
+histogram Lønnsinntekter
+summarize Lønnsinntekter
+tabulate  Sysselsatt2 fullført, summarize(Lønnsinntekter)
+
+
+import fdb/INNTEKT_OVERFOR 2022-12-31 as Overføringer
+histogram Overføringer
+summarize Overføringer
+tabulate  Sysselsatt2 fullført, summarize(Overføringer) 
+tabulate  Sysselsatt2 fullført, summarize(Overføringer) freq
+
+replace Overføringer = 0 if sysmiss(Overføringer)
+
+histogram Overføringer
+summarize Overføringer
+tabulate  Sysselsatt2 fullført, summarize(Overføringer)
+
+import fdb/INNTEKT_NARINNT 2022-12-31 as næringsinntekter
+histogram næringsinntekter
+summarize næringsinntekter
+tabulate  Sysselsatt2 fullført, summarize(næringsinntekter) 
+tabulate  Sysselsatt2 fullført, summarize(næringsinntekter) freq
+
+replace næringsinntekter = 0 if sysmiss(næringsinntekter)
+
+histogram næringsinntekter
+summarize næringsinntekter
+tabulate  Sysselsatt2 fullført, summarize(næringsinntekter)
+
+import fdb/INNTEKT_STUDIESTIPEND 2022-12-31 as Studiestipend
+histogram Studiestipend
+summarize Studiestipend
+tabulate  Sysselsatt2 fullført, summarize(Studiestipend) 
+tabulate  Sysselsatt2 fullført, summarize(Studiestipend) freq
+
+replace Studiestipend = 0 if sysmiss(Studiestipend)
+
+histogram Studiestipend
+summarize Studiestipend
+tabulate  Sysselsatt2 fullført, summarize(Studiestipend)
+
+//bolig verdier
+import fdb/INNTEKT_PRIM_MARK 2022-12-31 as primærbolig
+histogram primærbolig
+summarize primærbolig
+tabulate  Sysselsatt2 fullført, summarize(primærbolig) 
+tabulate  Sysselsatt2 fullført, summarize(primærbolig) freq
+
+replace primærbolig = 0 if sysmiss(primærbolig)
+
+histogram primærbolig
+summarize primærbolig
+tabulate  Sysselsatt2 fullført, summarize(primærbolig)
+
+histogram primærbolig if fullført2 == '1 - Fullført'
+summarize primærbolig if fullført2 == '1 - Fullført'
+histogram primærbolig if fullført2 == '2 - Ikke fullført'
+summarize primærbolig if fullført2 == '2 - Ikke fullført'
+
+
+import fdb/INNTEKT_SEK_MARK 2022-12-31 as sekundærbolig
+histogram sekundærbolig
+summarize sekundærbolig
+tabulate  Sysselsatt2 fullført, summarize(sekundærbolig) 
+tabulate  Sysselsatt2 fullført, summarize(sekundærbolig) freq
+
+replace sekundærbolig = 0 if sysmiss(sekundærbolig)
+
+histogram sekundærbolig
+summarize sekundærbolig
+tabulate  Sysselsatt2 fullført, summarize(sekundærbolig)
+
+//ufør og sosialhjelp
+import fdb/UFOERP2011FDT_GRAD 2022-11-30 as grad
+generate ufør = 'ikke  ufør'
+replace ufør = 'ufør' if grad > 0
+
+tabulate ufør fullført, missing colpct freq
+
+import fdb/SOSHJLPZFDT_BIDB 2022-12-31 as sosialhjelp
+summarize sosialhjelp
+
+tabulate utdniv fullført, summarize(sosialhjelp)
+tabulate utdniv fullført, summarize(sosialhjelp) freq
+
+generate sosial = 'Nei'
+replace sosial = 'ja' if sosialhjelp >= 1
+
+tabulate fullført sosial ufør, missing
+
+generate Uførsos  = 'Ikke ufør, ikke sosisal'
+replace Uførsos = 'sosial' if sosial == 'ja'
+replace Uførsos = 'Ufør' if ufør == 'ufør' 
+
+tabulate fullført Uførsos, missing
+
+//bolig - eie/leie
+
+//henter eie/leie status og trangbodhet
+import fdb/BOFORHOLD_EIE_LEIE 2023-01-01 as eie_leie
+tabulate fullført eie_leie, missing
+tabulate fullført eie_leie, rowpct missing
+
+tabulate fullført eie_leie, summarize(primærbolig)
+
+import fdb/BOFORHOLD_TRANGBODD 2023-01-01 as trang
+tabulate fullført trang,missing
+tabulate fullført trang, rowpct missing
+
+//boligtype
+import fdb/BOFORHOLD_BYGNINGSTYPE 2023-01-01 as boligt
+//krognlette måte å gjøre det på for å unngå avsløringskontroll. 
+generate boligtype1 = substr(boligt,1,1)
+generate boligtype2 = substr(boligt,1,2)
+tabulate boligtype1 , missing
+tabulate boligtype2 fullført if boligtype1 == '1', missing
+
+import fdb/BOFORHOLD_BRUKSAREAL 2023-01-01 as areal
+histogram areal
+summarize areal
+tabulate  boligtype2 fullført if boligtype1 == '1', summarize(areal)
+
+//legger til familietype
+import fdb/BEFOLKNING_REGSTAT_FAMTYP 2024-01-01 as familie
+generate Familkat  = substr(familie,1,1)
+generate Familiegruppe = '9- ukjent'
+replace Familiegruppe ='1- Enpersonsfamilie' if Familkat == '1'
+replace Familiegruppe = '2 - Familier med barn under 18 år' if Familkat == '2'
+replace Familiegruppe = '3 - Andre familier' if Familkat == '3'
+
+tabulate familie fullført, missing
+
+// Legger til kjønn
+import fdb/BEFOLKNING_KJOENN as kjønn
+tabulate fullført Familiegruppe , missing
+tabulate kjønn Familiegruppe , missing
+tabulate kjønn Familiegruppe fullført , missing
+tabulate kjønn Familiegruppe fullført , rowpct missing
+
+//henter bosted 2024
+//henter bostedskommuen og lager fylker
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2024-01-01 as bosted2024
+generate BFylke2024 = substr(bosted2024,1,2)
+define-labels botxt '03' 'Oslo' '11' 'Rogaland' '15' 'Møre og Romsdal' '18' 'Nordland'  '31''Østfold' '32''Akershus'  '33''Buskerud'  '34' 'Innlandet' '39' 'Vestfold'  '40' 'Telemark' '42' 'Agder' '46''Vestland' '50' 'Trøndelag'  '55' 'Troms'  '56' 'Finnmark' 
+assign-labels BFylke2024 botxt
+
+tabulate BFylke2024 fullført, missing
+
+//legger til grunnskolepoeng
+// kun personer som har karakter i minst 8 av 11 fag får grunnskolepoeng
+import fdb/NUDB_KURS_GRPOENG as Gpoeng
+generate Grunnpoeng = '0 eller manglende opplysninger'
+replace Grunnpoeng = '1-10' if Gpoeng > 1
+replace Grunnpoeng = '10-20' if Gpoeng > 10
+replace Grunnpoeng = '20-30' if Gpoeng > 20
+replace Grunnpoeng = '30-40' if Gpoeng > 30
+replace Grunnpoeng = '40-50' if Gpoeng > 40
+replace Grunnpoeng = '50-60' if Gpoeng > 50
+replace Grunnpoeng = 'Over 60' if Gpoeng > 60
+
+histogram Gpoeng
+summarize Gpoeng
+tabulate  Sysselsatt fullført, summarize(Gpoeng) 
+boxplot   Gpoeng, over(fullført)
