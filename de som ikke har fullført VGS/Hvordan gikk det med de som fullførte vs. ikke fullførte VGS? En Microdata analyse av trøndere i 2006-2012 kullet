@@ -441,6 +441,8 @@ assign-labels BFylke2024 botxt
 
 tabulate BFylke2024 fullført, missing
 
+
+//......................
 //legger til grunnskolepoeng
 // kun personer som har karakter i minst 8 av 11 fag får grunnskolepoeng
 import fdb/NUDB_KURS_GRPOENG as Gpoeng
@@ -456,4 +458,8 @@ replace Grunnpoeng = 'Over 60' if Gpoeng > 60
 histogram Gpoeng
 summarize Gpoeng
 tabulate  Sysselsatt fullført, summarize(Gpoeng) 
-boxplot   Gpoeng, over(fullført)
+boxplot   Gpoeng, over(fullført) horizontal 
+
+tabulate  Grunnpoeng fullført, summarize(inntekt) 
+tabulate  Grunnpoeng fullført
+
