@@ -1,0 +1,62 @@
+require no.ssb.fdb:35 as fdb
+create-dataset data
+
+//henter data på arbeidsted og filterter ut personer som har arbeidsted i Trøndelag 
+import fdb/REGSYS_ARB_ARBKOMM 2023-11-16 as arbeidsted
+generate fylke = substr(arbeidsted,1,2)
+generate kommnr = substr(arbeidsted,1,4)
+keep if fylke == '50'| fylke == '16'| fylke  == '17' | kommnr  == '1567'| kommnr  == '1571' 
+
+//henter opplysinger om yrke
+import fdb/REGSYS_ARB_YRKE_STYRK08 2023-11-16 as yrke
+generate yrkenr = substr(yrke,1,4)
+
+//lager datasett på jobber  for å hente opplysninger om sykefravær
+create-dataset jobbdata
+
+import fdb/SYKEFRAVAR_AVTALTE_DAGSVERK1 2023-11-16 as dag
+import fdb/SYKEFRAVAR_SYKEFRAVAR_DAGSVERK1 2023-11-16 as syk
+
+import fdb/ARBEIDSFORHOLD_PERSON  as personid
+
+summarize syk
+summarize dag
+
+histogram dag
+//koobler jobb data å persondata. 
+collapse (sum) dag syk, by(personid)
+merge dag syk into data
+
+use data
+
+summarize syk
+histogram syk
+
+
+tabulate arbeidsted, summarize(syk)
+tabulate arbeidsted, summarize(dag)
+
+//regner ut sykefraværsprsoent
+generate fravær = (syk/dag)*100
+
+tabulate arbeidsted, summarize(fravær)
+
+tabulate yrke, summarize(fravær) freq mean
+
+//henter alder 
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+generate alder = 2023 - int(faarmnd/100)
+
+generate aldersgruppe = '0'
+replace aldersgruppe = '20-29 år' if alder > 20
+replace aldersgruppe = '30-39 år' if alder > 30
+replace aldersgruppe = '40-49 år' if alder > 40
+replace aldersgruppe = '50-59 år' if alder > 50
+replace aldersgruppe = '60-67 år' if alder > 60
+replace aldersgruppe = 'Over 67 år ' if alder > 67
+
+import fdb/BEFOLKNING_KJOENN as kjønn
+tabulate yrke kjønn, summarize(fravær) freq mean
+
+tabulate yrke aldersgruppe if kjønn == '1', summarize(fravær)  
+tabulate yrke aldersgruppe if kjønn == '2', summarize(fravær) 
