@@ -1,4 +1,5 @@
 // note to self: veldig ueffektivt skript. Gå igjennom og rydd!!
+
 require no.ssb.fdb:37 as fdb 
 create-dataset pop
 
@@ -338,4 +339,87 @@ assign-labels Innvandringskategori Innvandringskategoritxt
 
 
 tabulate Innvandringskategori status2018, missing
+tabulate Innvandringskategori status2018, missing rowpct
+tabulate Innvandringskategori status2018, missing colpct
+
+tabulate Innvandringskategori status2023, missing
+tabulate Innvandringskategori status2023, missing rowpct
+tabulate Innvandringskategori status2023, missing colpct
+
+
 tabulate Innvandringskategori vedvarende, missing
+tabulate Innvandringskategori vedvarende, missing rowpct
+tabulate Innvandringskategori vedvarende, missing colpct
+
+//......................
+//legger til grunnskolepoeng
+// kun personer som har karakter i minst 8 av 11 fag får grunnskolepoeng
+import fdb/NUDB_KURS_GRPOENG as Gpoeng
+generate Grunnpoeng = '0 eller manglende opplysninger'
+replace Grunnpoeng = '1-10' if Gpoeng > 1
+replace Grunnpoeng = '10-20' if Gpoeng > 10
+replace Grunnpoeng = '20-30' if Gpoeng > 20
+replace Grunnpoeng = '30-40' if Gpoeng > 30
+replace Grunnpoeng = '40-50' if Gpoeng > 40
+replace Grunnpoeng = 'Over 50' if Gpoeng > 50
+
+
+tabulate  Grunnpoeng status2018, missing
+tabulate  Grunnpoeng vedvarende, missing 
+
+histogram Gpoeng
+summarize Gpoeng
+tabulate  Innvandringskategori status2018, summarize(Gpoeng) 
+tabulate  Innvandringskategori vedvarende, summarize(Gpoeng) 
+boxplot   Gpoeng, over(status2018) horizontal 
+boxplot   Gpoeng, over(vedvarende) horizontal 
+
+
+//legger til utdanningsnivå i dag
+import fdb/NUDB_BU 2023-08-01 as utd
+generate utd1 = substr(utd,1,1)
+//lager kategorier
+generate utdniv = '9'
+replace utdniv = '1' if utd1 == '1' | utd1 == '2'
+replace utdniv = '2' if utd1 == '3' | utd1 == '4' | utd1 == '5'
+replace utdniv = '3' if utd1 == '6'
+replace utdniv = '4' if utd1 == '7' | utd1 == '8' 
+define-labels utdnivtxt '1' 'Grunnskolenivå' '2'  'Videregående grunnopplæring' '3' 'Universitets og høgskolenivå kort' '4' 'Universitets og høgskolenivå lang' '9' 'Uoppgitt el ingen utdanning'
+assign-labels utdniv utdnivtxt
+
+tabulate utdniv status2018, missing 
+tabulate utdniv vedvarende, missing 
+
+tabulate utdniv vedvarende, missing colpct
+
+
+
+//innenfor over tid 
+generate vedvarende_innenfor = "1 - vedvarende innenfor"
+
+replace vedvarende_innenfor  = "2 - ikke vedvarende innenfor" if status2019 == "2 - Utenfor"
+replace vedvarende_innenfor  = "2 - ikke vedvarende innenfor" if status2019 == "3 - Utvandret"
+replace vedvarende_innenfor  = "2 - ikke vedvarende innenfor" if status2019 == "4 - Død"
+
+replace vedvarende_innenfor  = "2 - ikke vedvarende innenfor" if status2020 == "2 - Utenfor"
+replace vedvarende_innenfor  = "2 - ikke vedvarende innenfor" if status2020 == "3 - Utvandret"
+replace vedvarende_innenfor  = "2 - ikke vedvarende innenfor" if status2020 == "4 - Død"
+
+replace vedvarende_innenfor  = "2 - ikke vedvarende innenfor" if status2021 == "2 - Utenfor"
+replace vedvarende_innenfor  = "2 - ikke vedvarende innenfor" if status2021 == "3 - Utvandret"
+replace vedvarende_innenfor  = "2 - ikke vedvarende innenfor" if status2021 == "4 - Død"
+
+replace vedvarende_innenfor  = "2 - ikke vedvarende innenfor" if status2022 == "2 - Utenfor"
+replace vedvarende_innenfor  = "2 - ikke vedvarende innenfor" if status2022 == "3 - Utvandret"
+replace vedvarende_innenfor  = "2 - ikke vedvarende innenfor" if status2022 == "4 - Død"
+
+replace vedvarende_innenfor  = "2 - ikke vedvarende innenfor" if status2023 == "2 - Utenfor"
+replace vedvarende_innenfor  = "2 - ikke vedvarende innenfor" if status2023 == "3 - Utvandret"
+replace vedvarende_innenfor  = "2 - ikke vedvarende innenfor" if status2023 == "4 - Død"
+
+replace vedvarende_innenfor  = "3 - ikke innenfor i år 1" if status2018 == "2 - Utenfor"
+
+
+tabulate vedvarende_innenfor vedvarende
+tabulate vedvarende_innenfor status2018, freq rowpct colpct
+tabulate vedvarende_innenfor status2023, freq rowpct colpct
