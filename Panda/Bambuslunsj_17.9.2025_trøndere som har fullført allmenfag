@@ -1,0 +1,168 @@
+//skript brukt på https://www.pandaanalyse.no/events/kom-i-gang-med-microdata/ 
+
+require no.ssb.fdb:44 as fdb
+create-dataset person
+
+//henter bosted per 1.1.2025
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2025-01-01 as bosted
+generate fylke = substr(bosted,1,2)
+
+//henter bostedskommene 16 år. 
+import fdb/NUDB_KOMM_16 as aar16
+generate aar16kom = substr(aar16,1,4)
+generate aar16f = substr(aar16,1,2)
+
+//beholder kun Trøndelag 
+keep if aar16f == '50'| aar16f == '16'| aar16f  == '17' | aar16kom  == '1567'| aar16kom  == '1571'
+
+// Legger til kjønn
+import fdb/BEFOLKNING_KJOENN as kjønn
+
+//henter første år fullført allmenfag 
+import fdb/NUDB_AAR_FORSTE_FULLF_VSA as allmen_FORSTE_FULLF_VSA
+generate år_allmen_fullført = substr(allmen_FORSTE_FULLF_VSA,1,4)
+
+tabulate år_allmen_fullført
+
+//tar ut kun de som fullførte mello 2010-2018
+destring år_allmen_fullført
+keep if år_allmen_fullført >=2010 & år_allmen_fullført <=2018
+
+tabulate år_allmen_fullført, missing
+
+//teste om noen også har gjennomført yrkesfag
+import fdb/NUDB_AAR_FORSTE_FULLF_VSY as år_yrke_FORSTE_FULLF_VSA
+generate år_yrke_fullført = substr(år_yrke_FORSTE_FULLF_VSA,1,4)
+
+tabulate år_yrke_fullført år_allmen_fullført, missing
+
+destring år_yrke_fullført
+
+//yrkesfafag før/etter allmenfag
+generate før_etter = år_yrke_fullført-år_allmen_fullført
+tabulate før_etter, missing
+
+generate før_etter_dummy = '1 - Kun allmen'
+replace før_etter_dummy  = '2 - allmen og yrkesfag samme år' if  før_etter == 0
+replace før_etter_dummy  = '3 - allmen etter yrkesfag' if  før_etter < 0
+replace før_etter_dummy  = '4 - allmen før yrkesfag' if  før_etter > 0
+
+//test om det ble kodet riktig
+tabulate før_etter  før_etter_dummy
+
+tabulate før_etter_dummy 
+
+//finner bosted per 1.1.2025
+tabulate bosted, missing
+
+tabulate bosted , missing rowsort() bottom(25)
+
+
+//lager dummy trøndelag/ikke trøndelag på bosted per 1.1.2025
+generate Trøndelag = '2- ikke bosatt i Trøndelag'
+replace Trøndelag = '1- bosatt i Trøndelag' if fylke == '50'
+
+tabulate år_allmen_fullført Trøndelag, missing
+
+//henter alder - når de fullførte studiespess
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+generate alder = år_allmen_fullført - int(faarmnd/100)
+
+tabulate alder  før_etter_dummy, missing
+
+//keep if alder  <= 25
+
+generate alder2 = '1 - Ung'
+replace alder2 = '2 - Voksen' if alder >25
+
+tabulate  alder2 før_etter_dummy, missing
+tabulate  alder2 Trøndelag, missing
+
+//legger til utdanningsnivå
+import fdb/NUDB_BU 2023-08-01 as utd
+generate utd1 = substr(utd,1,1)
+
+//lager kategorier
+generate utdniv = '1'
+replace utdniv = '3' if utd1 == '3' | utd1 == '4' 
+replace utdniv = '4' if utd1 == '5' 
+replace utdniv = '5' if utd1 == '6' 
+replace utdniv = '6' if utd1 == '7' 
+replace utdniv = '7' if utd1 == '8' 
+define-labels utdnivtxt '1' 'Uoppgitt, ingen utdanning eller grunnskole' '3'  'Videregående utdanning' '4' 'Fagskole  utdanning'  '5'  'Universitets- og høgskole lavere nivå' '6'  'Universitets- og høgskole høyere nivå' '7'  'Phd'
+assign-labels utdniv utdnivtxt
+
+//lager en variant nr 2 på utdanningsnivå.
+generate utdniv1 = '1'
+replace utdniv1 = '3' if utd1 == '3' | utd1 == '4'  | utd1 == '5' 
+replace utdniv1 = '5' if utd1 == '6' 
+replace utdniv1 = '6' if utd1 == '7' |  utd1 == '8' 
+define-labels utdniv1txt '1' 'Uoppgitt, ingen utdanning eller grunnskole' '3'  'Videregående utdanning'   '5'  'Universitets- og høgskole lavere nivå' '6'  'Universitets- og høgskole høyere nivå' 
+assign-labels utdniv1 utdniv1txt
+
+tabulate utdniv kjønn, missing colpct freq
+tabulate utdniv alder2, missing
+tabulate utdniv Trøndelag , missing
+
+//detaljert utdanning på de som kun har videregående.
+tabulate utd if utdniv == '3' , missing
+
+tabulate utd if utdniv == '3' , missing rowsort() bottom(10)
+
+tabulate utdniv1 før_etter_dummy, missing colpct rowpct freq
+
+tabulate  år_allmen_fullført utdniv, missing
+
+//arbeidstatus
+import fdb/REGSYS_ARB_ARBMARK_STATUS 2024-11-16 as arbstat
+
+tabulate arbstat utdniv, missing colpct freq
+tabulate utdniv1 arbstat, missing rowpct freq
+tabulate år_allmen_fullført arbstat, missing rowpct freq
+tabulate arbstat alder2, missing colpct freq
+
+//henter yrke per 4. kvartal 2024
+import fdb/REGSYS_ARB_YRKE_STYRK08 2024-11-16 as yrke
+
+tabulate yrke arbstat, missing
+tabulate yrke arbstat, missing rowsort() bottom(25)
+
+tabulate yrke utdniv1, missing
+tabulate yrke utdniv1, missing rowsort() bottom(25) rowpct freq
+
+//henter lønn - merk hvis bruk heltidsekvivalent lønn - koble med max og ikke sum for å sikre at det ikke blir for høye verdier på persopner som har flere jobber
+create-dataset jobber_lønn
+
+//henter lønsdata fra samme måned som tellemånden i regsyss - slik at det kan kobles mot hovedyrket som ligger i regsys
+import fdb/ARBLONN_LONN_FAST 2024-11-30 as lønn 
+//import fdb/ARBLONN_LONN_EKV_IALT 2024-11-30 as lønn 
+import fdb/ARBEIDSFORHOLD_PERSON as personid
+collapse(sum) lønn, by(personid)
+//collapse(max) lønn, by(personid)
+merge lønn into person
+
+
+use person
+
+summarize lønn
+histogram lønn
+
+//replace lønn = 0 if sysmiss(lønn)
+//summarize lønn
+//histogram lønn
+
+tabulate arbstat utdniv , summarize(lønn) mean p50 freq
+
+boxplot lønn if arbstat == '1', over(utdniv) horizontal
+
+//lønn og utdanning 
+regress  lønn i.utdniv  if arbstat == '1'
+coefplot regress lønn i.utdniv  if arbstat == '1'
+
+regress  lønn i.utdniv#kjønn  if arbstat == '1'
+coefplot regress lønn i.utdniv#kjønn  if arbstat == '1'
+
+regress  lønn i.utdniv#kjønn i.Trøndelag#utdniv  if arbstat == '1'
+coefplot regress lønn i.utdniv#kjønn i.Trøndelag#utdniv if arbstat == '1'
+
+tabulate yrke utdniv1 if arbstat == '1', summarize(lønn)
