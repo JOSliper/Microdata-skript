@@ -1,6 +1,6 @@
 // note to self: veldig ueffektivt skript. Gå igjennom og rydd!!
 
-require no.ssb.fdb:37 as fdb 
+require no.ssb.fdb:45 as fdb 
 create-dataset pop
 
 //henter befolkningen i Trøndelag 
@@ -63,9 +63,14 @@ generate status2018 = "2 - Utenfor"
 replace status2018 = "1 - Innenfor" if utdanning == 1
 replace status2018 = "1 - Innenfor" if yrkstat ==  '1' | yrkstat ==  '2'
 replace status2018 = "1 - Innenfor" if stipend >= 1
-replace status2018 = "1 - Innenfor" if tiltak == '1'
+replace status2018 = "1 - Innenfor" if tiltak == '1' | tiltak ==  '7'
 
 tabulate status2018, missing
+
+import fdb/ARBSTATUS_PERS_NEET 2018-11-16 as neet2018
+
+//neets test 
+tabulate status2018 neet2018, missing colpct freq
 
 //...................................
 //periode 2
@@ -100,7 +105,7 @@ generate status2019 = "2 - Utenfor"
 replace status2019 = "1 - Innenfor" if utdanning2 == 1
 replace status2019 = "1 - Innenfor" if yrkstat2 ==  '1' | yrkstat2 ==  '2'
 replace status2019 = "1 - Innenfor" if stipend2 >= 1
-replace status2019 = "1 - Innenfor" if tiltak2 == '1'
+replace status2019 = "1 - Innenfor" if tiltak2 == '1' | tiltak2 ==  '7'
 replace status2019 = "3 - Utvandret" if statuskode2 == '3' 
 replace status2019 = "4 - Død" if statuskode2 == '5'
 
@@ -142,7 +147,7 @@ generate status2020 = "2 - Utenfor"
 replace status2020 = "1 - Innenfor" if utdanning3 == 1
 replace status2020 = "1 - Innenfor" if yrkstat3 ==  '1' | yrkstat3 ==  '2'
 replace status2020 = "1 - Innenfor" if stipend3 >= 1
-replace status2020 = "1 - Innenfor" if tiltak3 == '1'
+replace status2020 = "1 - Innenfor" if tiltak3 == '1' | tiltak3 ==  '7'
 replace status2020 = "3 - Utvandret" if statuskode3 == '3' 
 replace status2020 = "4 - Død" if statuskode3 == '5'
 
@@ -187,7 +192,7 @@ generate status2021 = "2 - Utenfor"
 replace status2021 = "1 - Innenfor" if utdanning4 == 1
 replace status2021 = "1 - Innenfor" if yrkstat4 ==  '1' | yrkstat4 ==  '2'
 replace status2021 = "1 - Innenfor" if stipend4 >= 1
-replace status2021 = "1 - Innenfor" if tiltak4 == '1'
+replace status2021 = "1 - Innenfor" if tiltak4 == '1' | tiltak4 ==  '7'
 replace status2021 = "3 - Utvandret" if statuskode4 == '3' 
 replace status2021 = "4 - Død" if statuskode4 == '5'
 
@@ -230,7 +235,7 @@ generate status2022 = "2 - Utenfor"
 replace status2022 = "1 - Innenfor" if utdanning5 == 1
 replace status2022 = "1 - Innenfor" if yrkstat5 ==  '1' | yrkstat5 ==  '2'
 replace status2022 = "1 - Innenfor" if stipend5 >= 1
-replace status2022 = "1 - Innenfor" if tiltak5 == '1'
+replace status2022 = "1 - Innenfor" if tiltak5 == '1' | tiltak5 ==  '7'
 replace status2022 = "3 - Utvandret" if statuskode5 == '3' 
 replace status2022 = "4 - Død" if statuskode4 == '5'
 
@@ -262,7 +267,7 @@ generate utdanning6 = 0
 replace utdanning6 = 1 if ant_kurs6 > 0
 
 import fdb/REGSYS_ARB_ARBMARK_STATUS 2023-11-16 as yrkstat6
-//import fdb/INNTEKT_STUDIESTIPEND 2023-12-31 as stipend6
+import fdb/INNTEKT_STUDIESTIPEND 2023-12-31 as stipend6
 import fdb/ARBEIDSSOKER_TILTAK 2023-11-30 as tiltak6
 
 import fdb/BEFOLKNING_STATUSKODE 2024-01-01 as statuskode6
@@ -271,8 +276,8 @@ tabulate statuskode6
 generate status2023 = "2 - Utenfor" 
 replace status2023 = "1 - Innenfor" if utdanning6 == 1
 replace status2023 = "1 - Innenfor" if yrkstat6 ==  '1' | yrkstat6 ==  '2'
-//replace status2023 = "1 - Innenfor" if stipend6 >= 1
-replace status2023 = "1 - Innenfor" if tiltak6 == '1'
+replace status2023 = "1 - Innenfor" if stipend6 >= 1
+replace status2023 = "1 - Innenfor" if tiltak6 == '1' | tiltak6 ==  '7'
 replace status2023 = "3 - Utvandret" if statuskode6 == '3' 
 replace status2023 = "4 - Død" if statuskode6 == '5'
 
@@ -423,3 +428,5 @@ replace vedvarende_innenfor  = "3 - ikke innenfor i år 1" if status2018 == "2 -
 tabulate vedvarende_innenfor vedvarende
 tabulate vedvarende_innenfor status2018, freq rowpct colpct
 tabulate vedvarende_innenfor status2023, freq rowpct colpct
+
+tabulate utdniv vedvarende_innenfor, missing colpct
