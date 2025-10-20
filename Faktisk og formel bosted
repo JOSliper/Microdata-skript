@@ -1,22 +1,16 @@
-require no.ssb.fdb:21 as fdb
+require no.ssb.fdb:46 as fdb
 create-dataset Dataset
 //henter personer etter faktisk bosted 
-import fdb/BEFOLKNING_KOMMNR_FAKTISK 2022-01-01 as bostedf
+import fdb/BEFOLKNING_KOMMNR_FAKTISK 2025-01-01 as bostedf
 generate fFylke = substr(bostedf,1,2)
 generate fkommnr = substr(bostedf,1,4)
 tabulate bostedf, missing
 
 //henter personer etter formelt bosted - bruker outer join for å få med alle
-import fdb/BEFOLKNING_KOMMNR_FORMELL 2022-01-01 as bosted, outer_join
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2025-01-01 as bosted, outer_join
 generate Fylke = substr(bosted,1,2)
 generate kommnr = substr(bosted,1,4)
 tabulate bosted, missing
-
-define-labels fylkelabel '00' 'Ukjent' '03' 'Oslo' '11' 'Rogaland' '15' 'Møre og Romsdal' '18' 'Nordland' '30' 'Viken' '34' 'Innlandet' '38' 'Vestfold og Telemark' '42' 'Agder' '46' 'Vestland' '50' 'Trøndelag' '54' 'Troms og Finnmark' '25' 'Utdanning i utlandet'
-assign-labels fFylke fylkelabel
-assign-labels Fylke fylkelabel
-
-tabulate fFylke Fylke, missing
 
 //lager grupperinger
 generate Gruppe  = '4 Alle andre'
@@ -25,13 +19,20 @@ replace Gruppe =  "2 Faktisk, men ikke formelt bosatt i Trøndelag  " if fFylke 
 replace Gruppe =  "3 Formelt, men ikke faktisk bosatt i Trøndelag  " if Fylke == '50' & fFylke != '50'
 
 tabulate Gruppe, missing
+
 tabulate bosted Gruppe, missing
+
+define-labels fylkelabel '00' 'Ukjent' '03' 'Oslo' '11' 'Rogaland' '15' 'Møre og Romsdal' '18' 'Nordland' '31' 'Østfold' '32' 'Akershus' '33' 'Buskerud' '34' 'Innlandet' '39' 'Vestfold' '40' 'Telemark' '42' 'Agder' '46' 'Vestland' '50' 'Trøndelag' '55''Troms' '56' 'Finnmark''25' 'Utdanning i utlandet'
+assign-labels fFylke fylkelabel
+assign-labels Fylke fylkelabel
+
+tabulate fFylke Fylke, missing
 
 
 //kjører test på om det bare er studenter
 //Henter personer som tar utdanning i perioden
 create-dataset kursdata
-import fdb/NUDB_KURS_NUS 2021-08-01 as kurstype
+import fdb/NUDB_KURS_NUS 2024-08-01 as kurstype
 destring kurstype, force
 
 //kun høyere utdanning
@@ -60,8 +61,8 @@ tabulate utdanning Gruppe, missing
 //ser på alder
 //henter fødselstidspunkt
 import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
-//lager alder i 2022 - bruker år -1 for å sikre at aldersfordelt befolkning samsvarere med tallene i statistikkbanken 
-generate alder = 2021 - int (faarmnd/100)
+//lager alder i 2024 - bruker år -1 for å sikre at aldersfordelt befolkning samsvarere med tallene i statistikkbanken 
+generate alder = 2024 - int(faarmnd/100)
 
 //lager aldersgrupper 5 årsgrupper
 generate aldersgruppe = '0'
