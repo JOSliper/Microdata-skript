@@ -1,3 +1,6 @@
+//skript til Pandaseminaret på Røros 12.11.2025
+//basert på skirptet brukt til denne analysen: https://trondelagitall.no/artikkel/skatt-og-offentlige-overforinger-hvilke-aldersgrupper-mottar-mest-og-hvilke-bidrar-mest
+
 require no.ssb.fdb:46 as fdb 
 create-dataset pop
 
