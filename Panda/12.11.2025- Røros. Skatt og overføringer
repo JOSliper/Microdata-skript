@@ -51,7 +51,7 @@ import fdb/SKATT_FASTSATT_SKATT 2023-12-31 as skatt
 histogram skatt
 summarize skatt
 tabulate  aldersgruppe kjønn, summarize(skatt)
-tabulate  aldersgruppe kjønn if fylke =='50' , summarize(skatt)
+tabulate  aldersgruppe kjønn if fylke =='50' , summarize(skatt) 
 
 //setter missing til 0 
 replace skatt = 0 if sysmiss(skatt)
@@ -63,23 +63,22 @@ tabulate aldersgruppe kjønn if fylke =='50' , summarize(skatt)
 tabulate aldersgruppe Trønder, summarize(skatt)
 barchart (mean) skatt if fylke =='50', over(aldersgruppe) 
 
-
 //legger til overføringer i 2023
-import fdb/INNTEKT_WOVERFOR 2023-12-31 as overføring
+import fdb/INNTEKT_OVERFOR 2023-12-31 as overføring
 histogram overføring
 summarize overføring
 tabulate aldersgruppe kjønn, summarize(overføring)
 tabulate aldersgruppe kjønn if fylke =='50' , summarize(overføring)
 
 //to variabler på overføringer - test på den andre variablene for å se hva som er forskjellen mellom de to 
-import fdb/INNTEKT_OVERFOR 2023-12-31 as overføring2
+import fdb/INNTEKT_WOVERFOR 2023-12-31 as overføring2
 histogram overføring2
 summarize overføring2
 tabulate aldersgruppe kjønn if fylke =='50' , summarize(overføring2)
 
 hexbin overføring overføring2
 
-//velger å bruke INNTEKT_WOVERFOR videre 
+//velger å bruke INNTEKT_OVERFOR videre 
 
 //setter missing til 0 
 replace overføring = 0 if sysmiss(overføring)
@@ -217,4 +216,3 @@ tabulate aldersgruppe Nivå_2, summarize(nettooverføring)
 
 tabulate Nivå_2 kjønn , summarize(nettooverføring)
 tabulate Nivå_2 kjønn if alder <67 , summarize(nettooverføring)
-
