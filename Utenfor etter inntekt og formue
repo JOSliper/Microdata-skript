@@ -1,0 +1,123 @@
+require no.ssb.fdb:47 as fdb 
+create-dataset pop
+
+//henter Prioritert arbeidsstyrkestatus
+import fdb/ARBSTATUS_PERS_STATUS8 2023-11-16  as status
+generate status4 = substr(status,1,4)
+tabulate status4, missing
+
+//legger på geografi 
+import fdb/ARBSTATUS_PERS_KOMM_NR 2023-11-30  as bosted
+generate fylke = substr(bosted,1,2)
+generate kommnr = substr(bosted,1,4)
+keep if fylke == '50'| fylke == '16'| fylke  == '17'  | kommnr  == '1567'| kommnr  == '1571'
+
+tabulate status4, missing
+
+//lager nivå2
+generate Nivå_2 = '0'
+replace Nivå_2 = '1 - Sysselsatte' if status4 == '0808' | status4 == '0816' |status4 == '0824' | status4 == '0832' | status4 == '1608'
+replace Nivå_2 = '4 - Registrerte arbeidsledige' if status4 == '2408'
+replace Nivå_2 = '3 - Deltakere på arbeidsmarkedstiltak' if status4 == '3208' |status4 == '3216' | status4 == '3232' | status4 == '4816' | status4 == '3240'
+replace Nivå_2 = '2 - Under ordinær utdanning' if status4 == '4008' 
+replace Nivå_2 = '5 - Mottakere av arbeidsavklarings-penger/uføretrygd' if status4 == '4848' | status4 == '4832' | status4 == '4856' | status4 == '4864' 
+replace Nivå_2 = '6 - Mottakere av AFP/alderspensjon' if status4 == '5616' |status4 == '5632'
+
+//replace Nivå_2 = '7 - Andre' if status4 == '3224' | status4 == '4808'| status4 == '5608' | status4 == '5624' | status4 == '5640' | status4 == '6408' | status4 == '6416' | status4 == '6424' | status4 == '6432'
+//replace Nivå_2 = '8 - Ukjent' if status4 == '7208' 
+
+replace Nivå_2 = '7 - Andre/ukjent' if status4 == '3224' | status4 == '4808'| status4 == '5608' | status4 == '5624' | status4 == '5640' | status4 == '6408' | status4 == '6416' | status4 == '6424' | status4 == '6432' |status4 == '7208' 
+
+tabulate Nivå_2, missing
+
+generate Nivå_2_tall = substr(Nivå_2,1,1)
+
+//lager nivå 4/NEETs
+generate Nivå_4 = '0'
+replace Nivå_4 = '1 - I arbeid, under utdanning eller på arbeidsmarkedstiltak' if Nivå_2_tall == '1' | Nivå_2_tall == '2'  | Nivå_2_tall == '3'
+replace Nivå_4 = '2 - Utenfor arbeid, utdanning og arbeidsmarkedstiltak' if Nivå_2_tall == '4' | Nivå_2_tall == '5' | Nivå_2_tall == '6' | Nivå_2_tall == '7'| Nivå_2_tall == '8'
+
+tabulate Nivå_2 Nivå_4 , missing
+
+import fdb/ARBSTATUS_PERS_UTENFOR 2023-11-16  as ARBSTATUS_PERS_UTENFOR
+
+tabulate ARBSTATUS_PERS_UTENFOR Nivå_4 , missing
+//.....................................
+
+//legger til alder og kjønn
+//import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+//generate alder = 2023 - int(faarmnd/100)
+
+import fdb/ARBSTATUS_PERS_ALDER 2023-11-16 as alder
+
+
+
+import fdb/BEFOLKNING_KJOENN as kjønn
+
+keep if alder >=20
+keep if alder <=60
+
+//lager aldersgrupper 5 årsgrupper
+generate aldersgruppe = '0'
+replace aldersgruppe = '20-24 år' if alder >= 20
+replace aldersgruppe = '25-29 år' if alder >= 25
+replace aldersgruppe = '30-34 år' if alder >= 30
+replace aldersgruppe = '35-39 år' if alder >= 35
+replace aldersgruppe = '40-44 år' if alder >= 40
+replace aldersgruppe = '45-49 år' if alder >= 45
+replace aldersgruppe = '50-54 år' if alder >= 50
+replace aldersgruppe = '55-60 år' if alder >= 55
+replace aldersgruppe = 'Ukjent alder' if sysmiss(alder)
+
+tabulate Nivå_2 Nivå_4 , missing
+
+//legger til husholdningsinntekt etter skatt  i 2023
+import fdb/INNTEKT_HUSH_IES_EU 2023-12-31 as INNTEKT_HUSH
+summarize INNTEKT_HUSH
+
+tabulate Nivå_2 kjønn , summarize(INNTEKT_HUSH)
+
+tabulate Nivå_2 aldersgruppe , summarize(INNTEKT_HUSH)
+tabulate Nivå_4 aldersgruppe , summarize(INNTEKT_HUSH)
+
+tabulate Nivå_2 aldersgruppe , summarize(INNTEKT_HUSH) freq mean
+tabulate Nivå_4 aldersgruppe , summarize(INNTEKT_HUSH) freq mean
+
+//legger til inntekt etter skatt i 2023
+import fdb/INNTEKT_WIES 2023-12-31 as INNTEKT_WIES
+histogram INNTEKT_WIES
+summarize INNTEKT_WIES
+
+//setter missing til 0 
+replace INNTEKT_WIES = 0 if sysmiss(INNTEKT_WIES)
+histogram INNTEKT_WIES
+summarize INNTEKT_WIES
+
+
+tabulate Nivå_2 aldersgruppe , summarize(INNTEKT_WIES)
+tabulate Nivå_4 aldersgruppe , summarize(INNTEKT_WIES)
+
+tabulate Nivå_2 aldersgruppe , summarize(INNTEKT_WIES) freq mean
+tabulate Nivå_4 aldersgruppe , summarize(INNTEKT_WIES) freq mean
+
+generate INNTEKT_WIES_p10 = quantile(INNTEKT_WIES, 10)
+
+tabulate INNTEKT_WIES_p10 Nivå_4 , summarize(INNTEKT_WIES) freq mean
+
+//legger til beregnet bruttofrmue i 2023
+import fdb/INNTEKT_BER_BRFORM 2023-12-31 as INNTEKT_BER_BRFORM
+
+histogram INNTEKT_BER_BRFORM
+summarize INNTEKT_BER_BRFORM
+
+//setter missing til 0 
+replace INNTEKT_BER_BRFORM = 0 if sysmiss(INNTEKT_BER_BRFORM)
+histogram INNTEKT_BER_BRFORM
+summarize INNTEKT_BER_BRFORM
+
+generate INNTEKT_BER_BRFORM_p10 = quantile(INNTEKT_BER_BRFORM, 10)
+
+tabulate INNTEKT_BER_BRFORM_p10 INNTEKT_WIES_p10, missing
+tabulate INNTEKT_BER_BRFORM_p10 INNTEKT_WIES_p10 if Nivå_4 == '2 - Utenfor arbeid, utdanning og arbeidsmarkedstiltak' , missing
+
+
