@@ -50,8 +50,6 @@ tabulate ARBSTATUS_PERS_UTENFOR Nivå_4 , missing
 
 import fdb/ARBSTATUS_PERS_ALDER 2023-11-16 as alder
 
-
-
 import fdb/BEFOLKNING_KJOENN as kjønn
 
 keep if alder >=20
@@ -104,7 +102,7 @@ generate INNTEKT_WIES_p10 = quantile(INNTEKT_WIES, 10)
 
 tabulate INNTEKT_WIES_p10 Nivå_4 , summarize(INNTEKT_WIES) freq mean
 
-//legger til beregnet bruttofrmue i 2023
+//legger til beregnet bruttoformue i 2023
 import fdb/INNTEKT_BER_BRFORM 2023-12-31 as INNTEKT_BER_BRFORM
 
 histogram INNTEKT_BER_BRFORM
@@ -120,4 +118,13 @@ generate INNTEKT_BER_BRFORM_p10 = quantile(INNTEKT_BER_BRFORM, 10)
 tabulate INNTEKT_BER_BRFORM_p10 INNTEKT_WIES_p10, missing
 tabulate INNTEKT_BER_BRFORM_p10 INNTEKT_WIES_p10 if Nivå_4 == '2 - Utenfor arbeid, utdanning og arbeidsmarkedstiltak' , missing
 
+//hudsholdning og familieforhold 
 
+//legger til husholdningstype, merk litt ulikt telletidspunkt.
+import fdb/BEFOLKNING_REGSTAT_HUSHTYP 2024-01-01 as REGSTAT_HUSHTYP
+
+tabulate REGSTAT_HUSHTYP Nivå_4, missing
+tabulate REGSTAT_HUSHTYP Nivå_4, summarize(INNTEKT_WIES)
+tabulate REGSTAT_HUSHTYP Nivå_4, summarize(INNTEKT_HUSH)
+
+tabulate REGSTAT_HUSHTYP Nivå_2, missing
