@@ -1,0 +1,224 @@
+require no.ssb.fdb:47 as fdb 
+create-dataset pop
+
+//henter Prioritert arbeidsstyrkestatus
+import fdb/ARBSTATUS_PERS_STATUS8 2023-11-16  as status
+generate status4 = substr(status,1,4)
+tabulate status4, missing
+
+//legger på geografi 
+import fdb/ARBSTATUS_PERS_KOMM_NR 2023-11-30  as bosted
+generate fylke = substr(bosted,1,2)
+generate kommnr = substr(bosted,1,4)
+keep if fylke == '50'| fylke == '16'| fylke  == '17'  | kommnr  == '1567'| kommnr  == '1571'
+
+tabulate status4, missing
+
+//lager nivå2
+generate Nivå_2 = '0'
+replace Nivå_2 = '1 - Sysselsatte' if status4 == '0808' | status4 == '0816' |status4 == '0824' | status4 == '0832' | status4 == '1608'
+replace Nivå_2 = '2 - Registrerte arbeidsledige' if status4 == '2408'
+replace Nivå_2 = '3 - Deltakere på arbeidsmarkedstiltak' if status4 == '3208' |status4 == '3216' | status4 == '3232' | status4 == '4816' | status4 == '3240'
+replace Nivå_2 = '4 - Under ordinær utdanning' if status4 == '4008' 
+replace Nivå_2 = '5 - Mottakere av arbeidsavklarings-penger/uføretrygd' if status4 == '4848' | status4 == '4832' | status4 == '4856' | status4 == '4864' 
+replace Nivå_2 = '6 - Mottakere av AFP/alderspensjon' if status4 == '5616' |status4 == '5632'
+
+//replace Nivå_2 = '7 - Andre' if status4 == '3224' | status4 == '4808'| status4 == '5608' | status4 == '5624' | status4 == '5640' | status4 == '6408' | status4 == '6416' | status4 == '6424' | status4 == '6432'
+//replace Nivå_2 = '8 - Ukjent' if status4 == '7208' 
+
+replace Nivå_2 = '7 - Andre/ukjent' if status4 == '3224' | status4 == '4808'| status4 == '5608' | status4 == '5624' | status4 == '5640' | status4 == '6408' | status4 == '6416' | status4 == '6424' | status4 == '6432' |status4 == '7208' 
+
+tabulate Nivå_2, missing
+
+generate Nivå_2_tall = substr(Nivå_2,1,1)
+
+//lager nivå 4/NEETs
+generate Nivå_4 = '0'
+replace Nivå_4 = '1 - I arbeid, under utdanning eller på arbeidsmarkedstiltak' if Nivå_2_tall == '1' | Nivå_2_tall == '3'  | Nivå_2_tall == '4'
+replace Nivå_4 = '2 - Utenfor arbeid, utdanning og arbeidsmarkedstiltak' if Nivå_2_tall == '2' | Nivå_2_tall == '5' | Nivå_2_tall == '6' | Nivå_2_tall == '7'| Nivå_2_tall == '8'
+
+tabulate Nivå_2 Nivå_4 , missing
+
+import fdb/ARBSTATUS_PERS_UTENFOR 2023-11-16  as ARBSTATUS_PERS_UTENFOR
+
+tabulate ARBSTATUS_PERS_UTENFOR Nivå_4 , missing
+//.....................................
+
+//legger til alder og kjønn
+//import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+//generate alder = 2023 - int(faarmnd/100)
+
+import fdb/ARBSTATUS_PERS_ALDER 2023-11-16 as alder
+
+import fdb/BEFOLKNING_KJOENN as kjønn
+
+keep if alder >=20
+keep if alder <=60
+
+tabulate Nivå_2 Nivå_4 , missing
+
+
+//legger til arbeidstatus fra regsys
+import fdb/REGSYS_ARB_ARBMARK_STATUS 2023-11-16 as yrkstat
+
+//tester mot nivå2
+tabulate Nivå_2 yrkstat ,missing
+tabulate status yrkstat if Nivå_2  == '1 - Sysselsatte' ,missing
+
+
+// Legger til Innvandringskategori
+import fdb/BEFOLKNING_INVKAT as kat
+generate Innvandringskategori = '3'
+replace Innvandringskategori = '1' if kat == 'B'
+replace Innvandringskategori = '2' if kat == 'C'
+replace Innvandringskategori = 'Ukjent ' if sysmiss(kat)
+define-labels Innvandringskategoritxt '1' 'Innvandrere' '2' 'Norskfødt med innvandrerforeldre' '3' 'Øvrig befolkning'
+assign-labels Innvandringskategori Innvandringskategoritxt
+
+
+//innenfor/utenfor for invandre og total befolkning
+tabulate alder Nivå_4 if Innvandringskategori == '1', missing
+tabulate alder Nivå_4, missing
+
+
+
+//henter invandringsgrunn 
+import fdb/BEFOLKNING_INNGRUNN1 as grunn
+
+tabulate  Nivå_2 Innvandringskategori,missing
+
+tabulate  grunn Nivå_4  if Innvandringskategori == '1' , missing freq rowpct
+tabulate  grunn Nivå_2  if Innvandringskategori == '1' , missing freq rowpct
+
+sankey grunn Nivå_4  Nivå_2  if Innvandringskategori == '1'
+
+//lager en forenklet inndeling av innvandringgrunn
+generate GrunnF = '0'
+replace GrunnF = '1 - Arbeid' if grunn == 'ARB'
+replace GrunnF = '2 - Familie' if grunn == 'FAM'
+replace GrunnF = '3 - Flukt' if grunn == 'FLU'
+replace GrunnF = '4 - Utdanning' if grunn == 'UTD'
+replace GrunnF = '5 - Ukjent' if grunn == 'ANN' | grunn == 'UKJ' | sysmiss(grunn)
+
+//test
+tabulate GrunnF grunn,missing
+
+tabulate GrunnF  Nivå_4  if Innvandringskategori == '1' ,  missing
+tabulate GrunnF  Nivå_2  if Innvandringskategori == '1' ,  missing
+
+sankey GrunnF Nivå_4  Nivå_2  if Innvandringskategori == '1'
+
+sankey Innvandringskategori Nivå_4  Nivå_2 
+
+//henter første oppholdsdato og beregner botid for innvandrere.
+import fdb/BEFOLKNING_FORSTDATO  as FORSTDATO
+generate FORSTår =  substr(FORSTDATO,1,4)
+
+tabulate FORSTår, missing
+
+destring FORSTår
+generate botid = 2023 - FORSTår
+destring botid
+tabulate botid Nivå_4 if Innvandringskategori == '1' ,  missing  freq rowpct
+
+generate botid_gruppe = 'Ukjent'
+replace botid_gruppe = '0 år' if botid == 0
+replace botid_gruppe = '01 år' if botid == 1
+replace botid_gruppe = '02 år' if botid == 2
+replace botid_gruppe = '03 år' if botid == 3
+replace botid_gruppe = '04-6 år' if botid >= 4
+replace botid_gruppe = '07-9 år' if botid >= 7
+replace botid_gruppe = '10-15 år' if botid >= 10
+replace botid_gruppe = '16 år eller mer' if botid >= 16
+
+tabulate botid_gruppe Nivå_4 if Innvandringskategori == '1' ,  missing freq rowpct
+
+tabulate botid_gruppe Nivå_4 if Innvandringskategori == '1' ,  missing
+
+tabulate Nivå_4  botid_gruppe GrunnF   if Innvandringskategori == '1' ,  missing
+
+tabulate GrunnF  botid_gruppe  if Innvandringskategori == '1' ,  missing
+
+// Legger til fødeland
+import fdb/BEFOLKNING_FODELAND as fødeland
+tabulate fødeland Nivå_2, missing rowsort() bottom(25) freq rowpct
+tabulate fødeland grunn, missing rowsort() bottom(25) freq rowpct
+
+tabulate fødeland Nivå_2, missing rowsort() bottom(25) 
+tabulate fødeland Nivå_2 if Innvandringskategori == '1' , missing rowsort() bottom(25) 
+
+
+tabulate status Innvandringskategori if Nivå_2 == '3 - Deltakere på arbeidsmarkedstiltak'
+
+tabulate status Innvandringskategori if Nivå_2 == '5 - Mottakere av arbeidsavklarings-penger/uføretrygd'
+
+tabulate fødeland grunn Nivå_4 , missing
+
+tabulate fødeland Innvandringskategori, missing rowsort() bottom(25) 
+
+
+//legger til utdanningsnivå
+import fdb/NUDB_BU 2024-08-01 as utd
+generate utd1 = substr(utd,1,1)
+generate utdniv  = '1'
+replace utdniv  = '2' if utd1 == '1' | utd1 == '2'
+replace utdniv  = '3' if utd1 == '3' | utd1 == '4' 
+replace utdniv  = '4' if utd1 == '5' 
+replace utdniv  = '5' if utd1 == '6' 
+replace utdniv  = '6' if utd1 == '7' 
+replace utdniv  = '7' if utd1 == '8' 
+define-labels utdnivtxt '1' 'Uoppgitt el ingen utdanning' '2' 'Grunnskolenivå' '3'  'Videregående utdanning' '4' 'Fagskole  utdanning'  '5'  'Universitets- og høgskole lavere nivå' '6'  'Universitets- og høgskole høyere nivå' '7'  'Phd'
+assign-labels utdniv  utdnivtxt
+
+tabulate  Nivå_2 utdniv , missing freq colpct rowpct
+tabulate  Nivå_2 utdniv if  Innvandringskategori == '1', missing freq colpct rowpct
+
+tabulate  utdniv Nivå_4  if  Innvandringskategori == '1', missing 
+
+
+tabulate  utdniv Nivå_4 , missing 
+
+tabulate  utd  if  Innvandringskategori == '1' , missing rowsort()  bottom(5)
+
+tabulate status Innvandringskategori if Nivå_2 == '1 - Sysselsatte', rowsort()
+
+
+//legger til uføre grad
+import fdb/UFOERP2011FDT_GRAD  2023-12-01 as grad
+
+tabulate Nivå_2 grad, rowpct freq missing
+
+tabulate status grad if Nivå_2 == '5 - Mottakere av arbeidsavklarings-penger/uføretrygd'
+
+tabulate Nivå_2 grad, missing
+
+
+
+generate gradfør2 = '0'
+replace gradfør2 = '1- 0-50 %' if grad >=0
+replace gradfør2 = '2 -50 -75%' if grad >=50
+replace gradfør2 = '3 -75-99 %' if  grad >=75
+replace gradfør2 = '4 -100 %' if grad ==100
+
+tabulate gradfør2 grad, missing
+
+tabulate status gradfør2, missing
+
+tabulate Nivå_4 gradfør2, missing
+
+generate gradfør3 = '0'
+replace gradfør3 = 'Ufør' if grad >=0
+
+tabulate status gradfør3, missing
+
+
+//ser litt ekstra på ukjent gruppene 
+tabulate status  if Nivå_2 == '7 - Andre/ukjent', missing
+
+tabulate status Innvandringskategori if Nivå_4 == '2 - Utenfor arbeid, utdanning og arbeidsmarkedstiltak', missing rowsort()
+
+tabulate fødeland status if status == '72080000', rowsort()
+
+import fdb/BEFOLKNING_REGSTAT_HUSHTYP 2024-01-01 as husholdning
+
+tabulate husholdning   if status == '72080000',  missing
