@@ -67,7 +67,8 @@ replace aldersgruppe = '50-54 år' if alder >= 50
 replace aldersgruppe = '55-60 år' if alder >= 55
 replace aldersgruppe = 'Ukjent alder' if sysmiss(alder)
 
-tabulate Nivå_2 Nivå_4 , missing
+tabulate aldersgruppe Nivå_4, missing
+tabulate aldersgruppe Nivå_2, missing
 
 //legger til husholdningsinntekt etter skatt  i 2023
 import fdb/INNTEKT_HUSH_IES_EU 2023-12-31 as INNTEKT_HUSH
@@ -102,6 +103,10 @@ generate INNTEKT_WIES_p10 = quantile(INNTEKT_WIES, 10)
 
 tabulate INNTEKT_WIES_p10 Nivå_4 , summarize(INNTEKT_WIES) freq mean
 
+
+tabulate bosted Nivå_4 , summarize(INNTEKT_WIES) 
+tabulate bosted Nivå_4 , summarize(INNTEKT_WIES) mean freq p50 flatten
+
 //legger til beregnet bruttoformue i 2023
 import fdb/INNTEKT_BER_BRFORM 2023-12-31 as INNTEKT_BER_BRFORM
 
@@ -128,3 +133,67 @@ tabulate REGSTAT_HUSHTYP Nivå_4, summarize(INNTEKT_WIES)
 tabulate REGSTAT_HUSHTYP Nivå_4, summarize(INNTEKT_HUSH)
 
 tabulate REGSTAT_HUSHTYP Nivå_2, missing
+
+//overføringer og skatt
+
+
+//legger til skatt i 2023
+import fdb/SKATT_FASTSATT_SKATT 2023-12-31 as skatt
+histogram skatt
+summarize skatt
+tabulate  aldersgruppe Nivå_4, summarize(skatt)
+
+//setter missing til 0 
+replace skatt = 0 if sysmiss(skatt)
+histogram skatt
+summarize skatt
+tabulate aldersgruppe Nivå_4, summarize(skatt)
+tabulate aldersgruppe Nivå_2, summarize(skatt)
+
+barchart (mean) skatt , over(Nivå_2) 
+boxplot  skatt , over(Nivå_2) horizontal
+
+//legger til overføringer i 2023
+import fdb/INNTEKT_OVERFOR 2023-12-31 as overføring
+histogram overføring
+summarize overføring
+tabulate aldersgruppe Nivå_4, summarize(overføring)
+
+//setter missing til 0 
+replace overføring = 0 if sysmiss(overføring)
+histogram overføring
+summarize overføring
+tabulate aldersgruppe Nivå_4, summarize(overføring)
+tabulate aldersgruppe Nivå_2, summarize(overføring)
+
+barchart (mean) overføring , over(Nivå_2) 
+boxplot  overføring , over(Nivå_2) horizontal
+
+//Lager nettooverføring
+generate nettooverføring = skatt -overføring
+
+histogram nettooverføring
+summarize nettooverføring
+tabulate aldersgruppe Nivå_4, summarize(nettooverføring)
+tabulate aldersgruppe Nivå_2, summarize(nettooverføring)
+
+
+//legger til Samlet inntekt i 2023
+import fdb/INNTEKT_WSAMINNT 2023-12-31 as Samlet_inntekt
+histogram Samlet_inntekt
+summarize Samlet_inntekt
+tabulate aldersgruppe Nivå_4, summarize(Samlet_inntekt)
+
+//setter missing til 0 
+replace Samlet_inntekt = 0 if sysmiss(Samlet_inntekt)
+histogram Samlet_inntekt
+summarize Samlet_inntekt
+tabulate aldersgruppe Nivå_4, summarize(Samlet_inntekt)
+tabulate aldersgruppe Nivå_2, summarize(Samlet_inntekt)
+
+
+// tabell på de ulike økonomiske variablene. 
+tabulate  Nivå_2, summarize(INNTEKT_HUSH, INNTEKT_WIES, Samlet_inntekt, INNTEKT_BER_BRFORM, overføring, skatt, nettooverføring) flatten
+
+
+
