@@ -43,6 +43,8 @@ import fdb/ARBSTATUS_PERS_ALDER $dato_år0 as alder ++ $år0
 keep if alder ++ $år0 >=25
 keep if alder ++ $år0 <=35
 
+tabulate  kjønn Status ++ $år0, freq colpct rowpct
+
 tabulate bosted ++ $år0 Status ++ $år0, missing
 
 // år 1.......................................
