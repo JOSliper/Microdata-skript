@@ -157,11 +157,11 @@ replace Status ++ $år5 = "3 - Utvandret" if statuskode ++ $år5 == '3'
 replace Status ++ $år5 = "4 - Død" if statuskode ++ $år5 == '5'
 
 tabulate Status ++ $år0  Status ++ $år5, missing
-sankey Status ++ $år0 Status ++ $år1 Status ++ $år2 Status ++ $år3 Status ++ $år5
+sankey Status ++ $år0 Status ++ $år1 Status ++ $år2 Status ++ $år3 Status ++ $år4 Status ++ $år5
 
-sankey Status ++ $år0 Status ++ $år1 Status ++ $år2 Status ++ $år3 Status ++ $år5 if Status ++ $år0 == "1 - Innenfor"
+sankey Status ++ $år0 Status ++ $år1 Status ++ $år2 Status ++ $år3 Status ++ $år4 Status ++ $år5 if Status ++ $år0 == "1 - Innenfor"
 
-sankey Status ++ $år0 Status ++ $år1 Status ++ $år2 Status ++ $år3 Status ++ $år5 if Status ++ $år0 == '2 - Utenfor' 
+sankey Status ++ $år0 Status ++ $år1 Status ++ $år2 Status ++ $år3 Status ++ $år4 Status ++ $år5 if Status ++ $år0 == '2 - Utenfor' 
 
 
 //vedvarende .............................
