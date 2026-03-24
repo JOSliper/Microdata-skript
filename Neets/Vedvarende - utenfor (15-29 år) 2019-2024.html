@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/vega@6.2.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-lite@6.4.1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-embed@7.1.0"></script>
+</head>
+<body>
+  <div id="vis"/>
+  <script>
+    const spec = {
+  "usermeta": {
+    "preamble": "This chart was created by https://microdata.no. Edit the `config` section to alter appearance."
+  },
+  "axes": [
+    {
+      "orient": "bottom",
+      "labelAngle": 0,
+      "scale": "x",
+      "domain": false,
+      "ticks": false,
+      "encode": {
+        "labels": {
+          "update": {"text": {"scale": "stackNames", "field": "value"}}
+        }
+      }
+    }
+  ],
+  "width": 800,
+  "scales": [
+    {
+      "name": "x",
+      "type": "band",
+      "range": "width",
+      "domain": {"data": "finalTable", "field": "stack"},
+      "paddingInner": 0.95
+    },
+    {
+      "name": "stackNames",
+      "type": "ordinal",
+      "range": {"data": "finalTable", "field": "stacklabel"},
+      "domain": {"data": "finalTable", "field": "stack"}
+    },
+    {
+      "name": "y",
+      "type": "linear",
+      "range": "height",
+      "domain": {"data": "finalTable", "field": "y1"}
+    },
+    {
+      "name": "color",
+      "type": "ordinal",
+      "range": "category",
+      "domain": {"data": "finalTable", "field": "code"}
+    }
+  ],
+  "$schema": "https://vega.github.io/schema/vega/v6.json",
+  "marks": [
+    {
+      "type": "rect",
+      "from": {"data": "finalTable"},
+      "encode": {
+        "update": {
+          "x": {"scale": "x", "field": "stack"},
+          "width": {"scale": "x", "band": 1},
+          "y": {"scale": "y", "field": "y0"},
+          "y2": {"scale": "y", "field": "y1"},
+          "fill": {"scale": "color", "field": "code"},
+          "fillOpacity": {
+            "signal": "( segmentHover.hovered == datum.name || pathHover.source == datum.name || pathHover.destination == datum.name || (indexof(( segmentHover.codes || []), datum.name) > -1) ) ? 1 : chartHover.hovered != null ? 0.2 : 1 "
+          },
+          "strokeWidth": {"value": 0},
+          "stroke": {"scale": "color", "field": "code"}
+        },
+        "hover": {
+          "tooltip": {
+            "signal": "datum.stacklabel + ', ' + datum.catlabel + '  ' + format(datum.percentage, '.1%') "
+          }
+        }
+      }
+    },
+    {
+      "type": "path",
+      "name": "links",
+      "from": {"data": "linkTable"},
+      "clip": true,
+      "encode": {
+        "update": {
+          "strokeWidth": {"field": "strokeWidth"},
+          "path": {"field": "path"},
+          "strokeOpacity": {
+            "signal": "( segmentHover.hovered == datum.source || segmentHover.hovered == datum.destination || ( pathHover.source == datum.source && pathHover.destination == datum.destination ) ) ? 1 : chartHover.hovered != null ? 0.2 : 0.5 "
+          },
+          "stroke": {"field": "sourceCode", "scale": "color"}
+        },
+        "hover": {
+          "tooltip": {
+            "signal": "datum.sourceStackLabel + ', ' + datum.sourceLabel + ' → '  + datum.destinationStackLabel + ', ' + datum.destinationLabel + '​  ' + format(datum.value, ',.0f') "
+          }
+        }
+      }
+    },
+    {
+      "type": "group",
+      "name": "labelText",
+      "zindex": 1,
+      "from": {
+        "facet": {
+          "data": "finalTable",
+          "name": "labelFacet",
+          "groupby": [
+            "name",
+            "stack",
+            "yc",
+            "value",
+            "sourceLabel",
+            "stackLabel",
+            "labelpos"
+          ]
+        }
+      },
+      "clip": false,
+      "encode": {
+        "update": {
+          "x": {
+            "signal": "datum.labelpos=='left'?scale('x',datum.stack)-8 : scale('x',datum.stack) + (bandwidth('x')) +8"
+          },
+          "yc": {"scale": "y", "signal": "datum.yc"},
+          "width": {"signal": "0"},
+          "height": {"signal": "0"},
+          "fillOpacity": {"signal": "1"}
+        }
+      },
+      "marks": [
+        {
+          "type": "text",
+          "name": "headingOutline",
+          "from": {"data": "labelFacet"},
+          "encode": {
+            "update": {
+              "x": {"value": 0},
+              "y": {"value": 0},
+              "text": {
+                "signal": "datum.labelpos=='none'?'':(datum.shortlabel?datum.shortlabel:datum.catlabel)"
+              },
+              "align": {"signal": "datum.labelpos=='left'?'right':'left'"},
+              "fontWeight": {"value": "normal"},
+              "stroke": {"value": "#002b36"},
+              "strokeOpacity": {
+                "signal": "( segmentHover.hovered == datum.name || pathHover.source == datum.name || pathHover.destination == datum.name || (indexof(( segmentHover.codes || []), datum.name) > -1) ) ? 1 : chartHover.hovered != null ? 0.2 : 1 "
+              },
+              "strokeWidth": {"value": 3}
+            }
+          }
+        },
+        {
+          "type": "text",
+          "name": "heading",
+          "from": {"data": "labelFacet"},
+          "encode": {
+            "update": {
+              "x": {"value": 0},
+              "y": {"value": 0},
+              "text": {
+                "signal": "datum.labelpos=='none'?'':(datum.shortlabel?datum.shortlabel:datum.catlabel)"
+              },
+              "align": {"signal": "datum.labelpos=='left'?'right':'left'"},
+              "fill": {"value": "#839496"},
+              "fillOpacity": {
+                "signal": "( segmentHover.hovered == datum.name || pathHover.source == datum.name || pathHover.destination == datum.name || (indexof(( segmentHover.codes || []), datum.name) > -1) ) ? 1 : chartHover.hovered != null ? 0.2 : 1 "
+              },
+              "fontWeight": {"value": "normal"}
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "rect",
+      "from": {"data": "labelText"},
+      "encode": {
+        "update": {
+          "x": {"field": "bounds.x1", "offset": -2},
+          "x2": {"field": "bounds.x2", "offset": 2},
+          "y": {"field": "bounds.y1", "offset": -2},
+          "y2": {"field": "bounds.y2", "offset": 2},
+          "opacity": {"value": 0},
+          "cornerRadius": {"value": 4}
+        }
+      }
+    }
+  ],
+  "signals": [
+    {
+      "name": "standardGap",
+      "value": 15,
+      "description": "Gap as a percentage of full domain"
+    },
+    {
+      "name": "chartHover",
+      "value": {},
+      "description": "mouse is hovering the chart",
+      "on": [
+        {"events": "view:mouseover", "update": "{hovered:true}"},
+        {"events": "mouseout", "update": "{}"}
+      ]
+    },
+    {
+      "name": "segmentHover",
+      "description": "Highlight related segments and link when hovering segment",
+      "value": {},
+      "on": [
+        {
+          "events": "rect:mouseover",
+          "update": "{hovered:datum.name, code: datum.code, codes: ((data('linkedSegments')[0])[datum.name])}"
+        },
+        {"events": "mouseout", "update": "{}"}
+      ]
+    },
+    {
+      "name": "pathHover",
+      "description": "Highlight related segments and link when hovering links",
+      "value": {},
+      "on": [
+        {
+          "events": "path:mouseover",
+          "update": "{source:datum.source, destination:datum.destination}"
+        },
+        {"events": "mouseout", "update": "{}"}
+      ]
+    },
+    {
+      "name": "base",
+      "value": "center",
+      "description": "How to stack (center or zero)"
+    }
+  ],
+  "height": 400,
+  "data": [
+    {
+      "name": "rawcats",
+      "values": [
+        {"code": "1.2 - Utenfor", "label": "Utenfor", "trunkated-label": null},
+        {
+          "code": "2.1 - Innenfor",
+          "label": "Innenfor",
+          "trunkated-label": null
+        },
+        {"code": "2.2 - Utenfor", "label": "Utenfor", "trunkated-label": null},
+        {
+          "code": "2.3 - Utvandret",
+          "label": "Utvandret",
+          "trunkated-label": null
+        },
+        {"code": "2.4 - Død", "label": "Død", "trunkated-label": null},
+        {"code": "2.5 - Ukjent", "label": "Ukjent", "trunkated-label": null},
+        {
+          "code": "3.1 - Innenfor",
+          "label": "Innenfor",
+          "trunkated-label": null
+        },
+        {"code": "3.2 - Utenfor", "label": "Utenfor", "trunkated-label": null},
+        {
+          "code": "3.3 - Utvandret",
+          "label": "Utvandret",
+          "trunkated-label": null
+        },
+        {"code": "3.4 - Død", "label": "Død", "trunkated-label": null},
+        {
+          "code": "4.1 - Innenfor",
+          "label": "Innenfor",
+          "trunkated-label": null
+        },
+        {"code": "4.2 - Utenfor", "label": "Utenfor", "trunkated-label": null},
+        {
+          "code": "4.3 - Utvandret",
+          "label": "Utvandret",
+          "trunkated-label": null
+        },
+        {"code": "4.4 - Død", "label": "Død", "trunkated-label": null},
+        {"code": "4.5 - Ukjent", "label": "Ukjent", "trunkated-label": null},
+        {
+          "code": "5.1 - Innenfor",
+          "label": "Innenfor",
+          "trunkated-label": null
+        },
+        {"code": "5.2 - Utenfor", "label": "Utenfor", "trunkated-label": null},
+        {
+          "code": "5.3 - Utvandret",
+          "label": "Utvandret",
+          "trunkated-label": null
+        },
+        {"code": "5.4 - Død", "label": "Død", "trunkated-label": null},
+        {"code": "5.5 - Ukjent", "label": "Ukjent", "trunkated-label": null},
+        {
+          "code": "6.1 - Innenfor",
+          "label": "Innenfor",
+          "trunkated-label": null
+        },
+        {"code": "6.2 - Utenfor", "label": "Utenfor", "trunkated-label": null},
+        {
+          "code": "6.3 - Utvandret",
+          "label": "Utvandret",
+          "trunkated-label": null
+        },
+        {"code": "6.4 - Død", "label": "Død", "trunkated-label": null}
+      ]
+    },
+    {
+      "name": "rawstacks",
+      "values": [
+        {"id": 1, "label": "2019", "height": 100},
+        {"id": 2, "label": "2020", "height": 100},
+        {"id": 3, "label": "2021", "height": 100},
+        {"id": 4, "label": "2022", "height": 100},
+        {"id": 5, "label": "2023", "height": 100},
+        {"id": 6, "label": "2024", "height": 100}
+      ]
+    },
+    {
+      "name": "rawstacksegments",
+      "values": [
+        {
+          "catid": "1.2 - Utenfor",
+          "code": "2 - Utenfor",
+          "stack": 1,
+          "sort": 1,
+          "labelpos": "left",
+          "gap": 0
+        },
+        {
+          "catid": "2.1 - Innenfor",
+          "code": "1 - Innenfor",
+          "stack": 2,
+          "sort": 2,
+          "labelpos": "left",
+          "gap": 0
+        },
+        {
+          "catid": "2.2 - Utenfor",
+          "code": "2 - Utenfor",
+          "stack": 2,
+          "sort": 2,
+          "labelpos": "left",
+          "gap": 0
+        },
+        {
+          "catid": "2.3 - Utvandret",
+          "code": "3 - Utvandret",
+          "stack": 2,
+          "sort": 2,
+          "labelpos": "left",
+          "gap": 0
+        },
+        {
+          "catid": "2.4 - Død",
+          "code": "4 - Død",
+          "stack": 2,
+          "sort": 2,
+          "labelpos": "left",
+          "gap": 0
+        },
+        {
+          "catid": "2.5 - Ukjent",
+          "code": "5 - Ukjent",
+          "stack": 2,
+          "sort": 2,
+          "labelpos": "left",
+          "gap": 0
+        },
+        {
+          "catid": "3.1 - Innenfor",
+          "code": "1 - Innenfor",
+          "stack": 3,
+          "sort": 3,
+          "labelpos": "left",
+          "gap": 0
+        },
+        {
+          "catid": "3.2 - Utenfor",
+          "code": "2 - Utenfor",
+          "stack": 3,
+          "sort": 3,
+          "labelpos": "left",
+          "gap": 0
+        },
+        {
+          "catid": "3.3 - Utvandret",
+          "code": "3 - Utvandret",
+          "stack": 3,
+          "sort": 3,
+          "labelpos": "left",
+          "gap": 0
+        },
+        {
+          "catid": "3.4 - Død",
+          "code": "4 - Død",
+          "stack": 3,
+          "sort": 3,
+          "labelpos": "left",
+          "gap": 0
+        },
+        {
+          "catid": "4.1 - Innenfor",
+          "code": "1 - Innenfor",
+          "stack": 4,
+          "sort": 4,
+          "labelpos": "left",
+          "gap": 0
+        },
+        {
+          "catid": "4.2 - Utenfor",
+          "code": "2 - Utenfor",
+          "stack": 4,
+          "sort": 4,
+          "labelpos": "left",
+          "gap": 0
+        },
+        {
+          "catid": "4.3 - Utvandret",
+          "code": "3 - Utvandret",
+          "stack": 4,
+          "sort": 4,
+          "labelpos": "left",
+          "gap": 0
+        },
+        {
+          "catid": "4.4 - Død",
+          "code": "4 - Død",
+          "stack": 4,
+          "sort": 4,
+          "labelpos": "left",
+          "gap": 0
+        },
+        {
+          "catid": "4.5 - Ukjent",
+          "code": "5 - Ukjent",
+          "stack": 4,
+          "sort": 4,
+          "labelpos": "left",
+          "gap": 0
+        },
+        {
+          "catid": "5.1 - Innenfor",
+          "code": "1 - Innenfor",
+          "stack": 5,
+          "sort": 5,
+          "labelpos": "left",
+          "gap": 0
+        },
+        {
+          "catid": "5.2 - Utenfor",
+          "code": "2 - Utenfor",
+          "stack": 5,
+          "sort": 5,
+          "labelpos": "left",
+          "gap": 0
+        },
+        {
+          "catid": "5.3 - Utvandret",
+          "code": "3 - Utvandret",
+          "stack": 5,
+          "sort": 5,
+          "labelpos": "left",
+          "gap": 0
+        },
+        {
+          "catid": "5.4 - Død",
+          "code": "4 - Død",
+          "stack": 5,
+          "sort": 5,
+          "labelpos": "left",
+          "gap": 0
+        },
+        {
+          "catid": "5.5 - Ukjent",
+          "code": "5 - Ukjent",
+          "stack": 5,
+          "sort": 5,
+          "labelpos": "left",
+          "gap": 0
+        },
+        {
+          "catid": "6.1 - Innenfor",
+          "code": "1 - Innenfor",
+          "stack": 6,
+          "sort": 6,
+          "labelpos": "right",
+          "gap": 0
+        },
+        {
+          "catid": "6.2 - Utenfor",
+          "code": "2 - Utenfor",
+          "stack": 6,
+          "sort": 6,
+          "labelpos": "right",
+          "gap": 0
+        },
+        {
+          "catid": "6.3 - Utvandret",
+          "code": "3 - Utvandret",
+          "stack": 6,
+          "sort": 6,
+          "labelpos": "right",
+          "gap": 0
+        },
+        {
+          "catid": "6.4 - Død",
+          "code": "4 - Død",
+          "stack": 6,
+          "sort": 6,
+          "labelpos": "right",
+          "gap": 0
+        }
+      ]
+    },
+    {
+      "name": "rawpaths",
+      "values": [
+        {
+          "source": "1.2 - Utenfor",
+          "destination": "2.1 - Innenfor",
+          "value": 3824,
+          "from-stack": 1,
+          "to-stack": 2
+        },
+        {
+          "source": "1.2 - Utenfor",
+          "destination": "2.2 - Utenfor",
+          "value": 5667,
+          "from-stack": 1,
+          "to-stack": 2
+        },
+        {
+          "source": "1.2 - Utenfor",
+          "destination": "2.3 - Utvandret",
+          "value": 409,
+          "from-stack": 1,
+          "to-stack": 2
+        },
+        {
+          "source": "1.2 - Utenfor",
+          "destination": "2.4 - Død",
+          "value": 11,
+          "from-stack": 1,
+          "to-stack": 2
+        },
+        {
+          "source": "1.2 - Utenfor",
+          "destination": "2.5 - Ukjent",
+          "value": 6,
+          "from-stack": 1,
+          "to-stack": 2
+        },
+        {
+          "source": "2.1 - Innenfor",
+          "destination": "3.1 - Innenfor",
+          "value": 3162,
+          "from-stack": 2,
+          "to-stack": 3
+        },
+        {
+          "source": "2.1 - Innenfor",
+          "destination": "3.2 - Utenfor",
+          "value": 615,
+          "from-stack": 2,
+          "to-stack": 3
+        },
+        {
+          "source": "2.1 - Innenfor",
+          "destination": "3.3 - Utvandret",
+          "value": 45,
+          "from-stack": 2,
+          "to-stack": 3
+        },
+        {
+          "source": "2.2 - Utenfor",
+          "destination": "3.1 - Innenfor",
+          "value": 1310,
+          "from-stack": 2,
+          "to-stack": 3
+        },
+        {
+          "source": "2.2 - Utenfor",
+          "destination": "3.2 - Utenfor",
+          "value": 3891,
+          "from-stack": 2,
+          "to-stack": 3
+        },
+        {
+          "source": "2.2 - Utenfor",
+          "destination": "3.3 - Utvandret",
+          "value": 455,
+          "from-stack": 2,
+          "to-stack": 3
+        },
+        {
+          "source": "2.3 - Utvandret",
+          "destination": "3.1 - Innenfor",
+          "value": 16,
+          "from-stack": 2,
+          "to-stack": 3
+        },
+        {
+          "source": "2.3 - Utvandret",
+          "destination": "3.3 - Utvandret",
+          "value": 396,
+          "from-stack": 2,
+          "to-stack": 3
+        },
+        {
+          "source": "2.4 - Død",
+          "destination": "3.4 - Død",
+          "value": 11,
+          "from-stack": 2,
+          "to-stack": 3
+        },
+        {
+          "source": "2.5 - Ukjent",
+          "destination": "3.2 - Utenfor",
+          "value": 6,
+          "from-stack": 2,
+          "to-stack": 3
+        },
+        {
+          "source": "3.1 - Innenfor",
+          "destination": "4.1 - Innenfor",
+          "value": 3772,
+          "from-stack": 3,
+          "to-stack": 4
+        },
+        {
+          "source": "3.1 - Innenfor",
+          "destination": "4.2 - Utenfor",
+          "value": 669,
+          "from-stack": 3,
+          "to-stack": 4
+        },
+        {
+          "source": "3.1 - Innenfor",
+          "destination": "4.3 - Utvandret",
+          "value": 23,
+          "from-stack": 3,
+          "to-stack": 4
+        },
+        {
+          "source": "3.1 - Innenfor",
+          "destination": "4.5 - Ukjent",
+          "value": 23,
+          "from-stack": 3,
+          "to-stack": 4
+        },
+        {
+          "source": "3.2 - Utenfor",
+          "destination": "4.1 - Innenfor",
+          "value": 843,
+          "from-stack": 3,
+          "to-stack": 4
+        },
+        {
+          "source": "3.2 - Utenfor",
+          "destination": "4.2 - Utenfor",
+          "value": 3256,
+          "from-stack": 3,
+          "to-stack": 4
+        },
+        {
+          "source": "3.2 - Utenfor",
+          "destination": "4.3 - Utvandret",
+          "value": 382,
+          "from-stack": 3,
+          "to-stack": 4
+        },
+        {
+          "source": "3.2 - Utenfor",
+          "destination": "4.4 - Død",
+          "value": 13,
+          "from-stack": 3,
+          "to-stack": 4
+        },
+        {
+          "source": "3.2 - Utenfor",
+          "destination": "4.5 - Ukjent",
+          "value": 17,
+          "from-stack": 3,
+          "to-stack": 4
+        },
+        {
+          "source": "3.3 - Utvandret",
+          "destination": "4.1 - Innenfor",
+          "value": 24,
+          "from-stack": 3,
+          "to-stack": 4
+        },
+        {
+          "source": "3.3 - Utvandret",
+          "destination": "4.2 - Utenfor",
+          "value": 7,
+          "from-stack": 3,
+          "to-stack": 4
+        },
+        {
+          "source": "3.3 - Utvandret",
+          "destination": "4.3 - Utvandret",
+          "value": 866,
+          "from-stack": 3,
+          "to-stack": 4
+        },
+        {
+          "source": "3.3 - Utvandret",
+          "destination": "4.5 - Ukjent",
+          "value": 5,
+          "from-stack": 3,
+          "to-stack": 4
+        },
+        {
+          "source": "3.4 - Død",
+          "destination": "4.4 - Død",
+          "value": 18,
+          "from-stack": 3,
+          "to-stack": 4
+        },
+        {
+          "source": "4.1 - Innenfor",
+          "destination": "5.1 - Innenfor",
+          "value": 3962,
+          "from-stack": 4,
+          "to-stack": 5
+        },
+        {
+          "source": "4.1 - Innenfor",
+          "destination": "5.2 - Utenfor",
+          "value": 637,
+          "from-stack": 4,
+          "to-stack": 5
+        },
+        {
+          "source": "4.1 - Innenfor",
+          "destination": "5.3 - Utvandret",
+          "value": 26,
+          "from-stack": 4,
+          "to-stack": 5
+        },
+        {
+          "source": "4.2 - Utenfor",
+          "destination": "5.1 - Innenfor",
+          "value": 657,
+          "from-stack": 4,
+          "to-stack": 5
+        },
+        {
+          "source": "4.2 - Utenfor",
+          "destination": "5.2 - Utenfor",
+          "value": 3146,
+          "from-stack": 4,
+          "to-stack": 5
+        },
+        {
+          "source": "4.2 - Utenfor",
+          "destination": "5.3 - Utvandret",
+          "value": 106,
+          "from-stack": 4,
+          "to-stack": 5
+        },
+        {
+          "source": "4.2 - Utenfor",
+          "destination": "5.4 - Død",
+          "value": 7,
+          "from-stack": 4,
+          "to-stack": 5
+        },
+        {
+          "source": "4.2 - Utenfor",
+          "destination": "5.5 - Ukjent",
+          "value": 6,
+          "from-stack": 4,
+          "to-stack": 5
+        },
+        {
+          "source": "4.3 - Utvandret",
+          "destination": "5.1 - Innenfor",
+          "value": 10,
+          "from-stack": 4,
+          "to-stack": 5
+        },
+        {
+          "source": "4.3 - Utvandret",
+          "destination": "5.3 - Utvandret",
+          "value": 1264,
+          "from-stack": 4,
+          "to-stack": 5
+        },
+        {
+          "source": "4.4 - Død",
+          "destination": "5.4 - Død",
+          "value": 27,
+          "from-stack": 4,
+          "to-stack": 5
+        },
+        {
+          "source": "4.5 - Ukjent",
+          "destination": "5.1 - Innenfor",
+          "value": 6,
+          "from-stack": 4,
+          "to-stack": 5
+        },
+        {
+          "source": "4.5 - Ukjent",
+          "destination": "5.2 - Utenfor",
+          "value": 5,
+          "from-stack": 4,
+          "to-stack": 5
+        },
+        {
+          "source": "4.5 - Ukjent",
+          "destination": "5.3 - Utvandret",
+          "value": 5,
+          "from-stack": 4,
+          "to-stack": 5
+        },
+        {
+          "source": "4.5 - Ukjent",
+          "destination": "5.4 - Død",
+          "value": 5,
+          "from-stack": 4,
+          "to-stack": 5
+        },
+        {
+          "source": "4.5 - Ukjent",
+          "destination": "5.5 - Ukjent",
+          "value": 34,
+          "from-stack": 4,
+          "to-stack": 5
+        },
+        {
+          "source": "5.1 - Innenfor",
+          "destination": "6.1 - Innenfor",
+          "value": 4032,
+          "from-stack": 5,
+          "to-stack": 6
+        },
+        {
+          "source": "5.1 - Innenfor",
+          "destination": "6.2 - Utenfor",
+          "value": 572,
+          "from-stack": 5,
+          "to-stack": 6
+        },
+        {
+          "source": "5.1 - Innenfor",
+          "destination": "6.3 - Utvandret",
+          "value": 25,
+          "from-stack": 5,
+          "to-stack": 6
+        },
+        {
+          "source": "5.1 - Innenfor",
+          "destination": "6.4 - Død",
+          "value": 7,
+          "from-stack": 5,
+          "to-stack": 6
+        },
+        {
+          "source": "5.2 - Utenfor",
+          "destination": "6.1 - Innenfor",
+          "value": 551,
+          "from-stack": 5,
+          "to-stack": 6
+        },
+        {
+          "source": "5.2 - Utenfor",
+          "destination": "6.2 - Utenfor",
+          "value": 3173,
+          "from-stack": 5,
+          "to-stack": 6
+        },
+        {
+          "source": "5.2 - Utenfor",
+          "destination": "6.3 - Utvandret",
+          "value": 55,
+          "from-stack": 5,
+          "to-stack": 6
+        },
+        {
+          "source": "5.2 - Utenfor",
+          "destination": "6.4 - Død",
+          "value": 14,
+          "from-stack": 5,
+          "to-stack": 6
+        },
+        {
+          "source": "5.3 - Utvandret",
+          "destination": "6.1 - Innenfor",
+          "value": 20,
+          "from-stack": 5,
+          "to-stack": 6
+        },
+        {
+          "source": "5.3 - Utvandret",
+          "destination": "6.2 - Utenfor",
+          "value": 7,
+          "from-stack": 5,
+          "to-stack": 6
+        },
+        {
+          "source": "5.3 - Utvandret",
+          "destination": "6.3 - Utvandret",
+          "value": 1376,
+          "from-stack": 5,
+          "to-stack": 6
+        },
+        {
+          "source": "5.4 - Død",
+          "destination": "6.4 - Død",
+          "value": 45,
+          "from-stack": 5,
+          "to-stack": 6
+        },
+        {
+          "source": "5.5 - Ukjent",
+          "destination": "6.1 - Innenfor",
+          "value": 19,
+          "from-stack": 5,
+          "to-stack": 6
+        },
+        {
+          "source": "5.5 - Ukjent",
+          "destination": "6.2 - Utenfor",
+          "value": 17,
+          "from-stack": 5,
+          "to-stack": 6
+        }
+      ]
+    },
+    {
+      "name": "stacksegments",
+      "source": "rawpaths",
+      "transform": [
+        {"type": "filter", "expr": "datum.source != null"},
+        {"type": "formula", "as": "end", "expr": "['source','destination']"},
+        {
+          "type": "formula",
+          "as": "name",
+          "expr": "[datum.source,datum.destination]"
+        },
+        {"type": "project", "fields": ["end", "name", "value"]},
+        {"type": "flatten", "fields": ["end", "name"]},
+        {
+          "type": "lookup",
+          "from": "rawstacksegments",
+          "key": "catid",
+          "values": ["code", "stack", "sort", "gap", "labelpos"],
+          "fields": ["name"]
+        },
+        {
+          "type": "lookup",
+          "from": "rawcats",
+          "key": "code",
+          "values": ["label", "trunkated-label"],
+          "fields": ["name"],
+          "as": ["catlabel", "shortlabel"]
+        },
+        {
+          "type": "lookup",
+          "from": "rawstacks",
+          "key": "id",
+          "values": ["label"],
+          "fields": ["stack"],
+          "as": ["stacklabel"]
+        },
+        {
+          "type": "aggregate",
+          "fields": [
+            "value",
+            "stack",
+            "sort",
+            "gap",
+            "labelpos",
+            "code",
+            "catlabel",
+            "shortlabel",
+            "stacklabel"
+          ],
+          "groupby": ["end", "name"],
+          "ops": [
+            "sum",
+            "max",
+            "max",
+            "max",
+            "max",
+            "max",
+            "max",
+            "max",
+            "max"
+          ],
+          "as": [
+            "value",
+            "stack",
+            "sort",
+            "gap",
+            "labelpos",
+            "code",
+            "catlabel",
+            "shortlabel",
+            "stacklabel"
+          ]
+        },
+        {
+          "type": "aggregate",
+          "fields": [
+            "value",
+            "stack",
+            "sort",
+            "gap",
+            "labelpos",
+            "code",
+            "catlabel",
+            "shortlabel",
+            "stacklabel"
+          ],
+          "groupby": ["name"],
+          "ops": [
+            "max",
+            "max",
+            "max",
+            "max",
+            "max",
+            "max",
+            "max",
+            "max",
+            "max"
+          ],
+          "as": [
+            "value",
+            "stack",
+            "sort",
+            "gap",
+            "labelpos",
+            "code",
+            "catlabel",
+            "shortlabel",
+            "stacklabel"
+          ]
+        },
+        {
+          "type": "joinaggregate",
+          "fields": ["value"],
+          "groupby": ["stack"],
+          "ops": ["sum"],
+          "as": ["segmentsum"]
+        },
+        {
+          "type": "formula",
+          "expr": "datum.value / datum.segmentsum",
+          "as": "percentage"
+        },
+        {"type": "formula", "as": "gap", "expr": "datum.gap?datum.gap:0"}
+      ]
+    },
+    {
+      "name": "maxValue",
+      "source": ["stacksegments"],
+      "transform": [
+        {
+          "type": "aggregate",
+          "fields": ["value"],
+          "groupby": ["stack"],
+          "ops": ["sum"],
+          "as": ["value"]
+        },
+        {
+          "type": "aggregate",
+          "fields": ["value"],
+          "ops": ["max"],
+          "as": ["value"]
+        }
+      ]
+    },
+    {
+      "name": "finalTable",
+      "source": ["stacksegments"],
+      "transform": [
+        {
+          "type": "formula",
+          "as": "spacer",
+          "expr": " (data('maxValue')[0].value/100)*(standardGap+datum.gap)"
+        },
+        {"type": "formula", "as": "type", "expr": "['data','spacer']"},
+        {
+          "type": "formula",
+          "as": "spacedValue",
+          "expr": "[datum.value,datum.spacer]"
+        },
+        {"type": "flatten", "fields": ["type", "spacedValue"]},
+        {
+          "type": "stack",
+          "groupby": ["stack"],
+          "sort": {"field": "sort", "order": "descending"},
+          "field": "spacedValue",
+          "offset": {"signal": "base"}
+        },
+        {"type": "formula", "expr": "((datum.value)/2)+datum.y0", "as": "yc"},
+        {"type": "filter", "expr": "datum.type == 'data'"}
+      ]
+    },
+    {
+      "name": "linkTable",
+      "source": ["rawpaths"],
+      "transform": [
+        {"type": "filter", "expr": "datum.source != null"},
+        {
+          "type": "lookup",
+          "from": "finalTable",
+          "key": "name",
+          "values": [
+            "y0",
+            "y1",
+            "stack",
+            "sort",
+            "code",
+            "catlabel",
+            "stacklabel",
+            "percentage"
+          ],
+          "fields": ["source"],
+          "as": [
+            "sourceStacky0",
+            "sourceStacky1",
+            "sourceStack",
+            "sourceSort",
+            "sourceCode",
+            "sourceLabel",
+            "sourceStackLabel",
+            "sourceStackPercentage"
+          ]
+        },
+        {
+          "type": "lookup",
+          "from": "finalTable",
+          "key": "name",
+          "values": [
+            "y0",
+            "y1",
+            "stack",
+            "sort",
+            "code",
+            "catlabel",
+            "stacklabel",
+            "percentage"
+          ],
+          "fields": ["destination"],
+          "as": [
+            "destinationStacky0",
+            "destinationStacky1",
+            "destinationStack",
+            "destinationSort",
+            "destinationCode",
+            "destinationLabel",
+            "destinationStackLabel",
+            "destinationStackPercentage"
+          ]
+        },
+        {
+          "type": "stack",
+          "groupby": ["source"],
+          "sort": {"field": "destinationSort", "order": "descending"},
+          "field": "value",
+          "offset": "zero",
+          "as": ["syi0", "syi1"]
+        },
+        {
+          "type": "formula",
+          "expr": "datum.syi0+datum.sourceStacky0",
+          "as": "sy0"
+        },
+        {"type": "formula", "expr": "datum.sy0+datum.value", "as": "sy1"},
+        {
+          "type": "stack",
+          "groupby": ["destination"],
+          "sort": {"field": "sourceSort", "order": "descending"},
+          "field": "value",
+          "offset": "zero",
+          "as": ["dyi0", "dyi1"]
+        },
+        {
+          "type": "formula",
+          "expr": "datum.dyi0+datum.destinationStacky0",
+          "as": "dy0"
+        },
+        {"type": "formula", "expr": "datum.dy0+datum.value", "as": "dy1"},
+        {"type": "formula", "expr": "((datum.value)/2)+datum.sy0", "as": "syc"},
+        {"type": "formula", "expr": "((datum.value)/2)+datum.dy0", "as": "dyc"},
+        {
+          "type": "linkpath",
+          "orient": "horizontal",
+          "shape": "diagonal",
+          "sourceY": {"expr": "scale('y',datum.syc)"},
+          "sourceX": {
+            "expr": "scale('x',toNumber(datum.sourceStack))+ bandwidth('x')"
+          },
+          "targetY": {"expr": "scale('y',datum.dyc)"},
+          "targetX": {"expr": "scale('x',datum.destinationStack)"}
+        },
+        {
+          "type": "formula",
+          "expr": "range('y')[0]-scale('y',datum.value)",
+          "as": "strokeWidth"
+        }
+      ]
+    },
+    {
+      "name": "linkedSegments",
+      "values": {
+        "6.3 - Utvandret": [
+          "5.1 - Innenfor",
+          "5.2 - Utenfor",
+          "5.3 - Utvandret"
+        ],
+        "6.4 - Død": ["5.1 - Innenfor", "5.2 - Utenfor", "5.4 - Død"],
+        "2.2 - Utenfor": [
+          "1.2 - Utenfor",
+          "3.1 - Innenfor",
+          "3.2 - Utenfor",
+          "3.3 - Utvandret"
+        ],
+        "2.5 - Ukjent": ["1.2 - Utenfor", "3.2 - Utenfor"],
+        "1.2 - Utenfor": [
+          "2.1 - Innenfor",
+          "2.2 - Utenfor",
+          "2.3 - Utvandret",
+          "2.4 - Død",
+          "2.5 - Ukjent"
+        ],
+        "6.2 - Utenfor": [
+          "5.1 - Innenfor",
+          "5.2 - Utenfor",
+          "5.3 - Utvandret",
+          "5.5 - Ukjent"
+        ],
+        "2.4 - Død": ["1.2 - Utenfor", "3.4 - Død"],
+        "4.4 - Død": ["3.2 - Utenfor", "3.4 - Død", "5.4 - Død"],
+        "3.4 - Død": ["2.4 - Død", "4.4 - Død"],
+        "4.5 - Ukjent": [
+          "3.1 - Innenfor",
+          "3.2 - Utenfor",
+          "3.3 - Utvandret",
+          "5.1 - Innenfor",
+          "5.2 - Utenfor",
+          "5.3 - Utvandret",
+          "5.4 - Død",
+          "5.5 - Ukjent"
+        ],
+        "5.2 - Utenfor": [
+          "4.1 - Innenfor",
+          "4.2 - Utenfor",
+          "4.5 - Ukjent",
+          "6.1 - Innenfor",
+          "6.2 - Utenfor",
+          "6.3 - Utvandret",
+          "6.4 - Død"
+        ],
+        "2.1 - Innenfor": [
+          "1.2 - Utenfor",
+          "3.1 - Innenfor",
+          "3.2 - Utenfor",
+          "3.3 - Utvandret"
+        ],
+        "4.1 - Innenfor": [
+          "3.1 - Innenfor",
+          "3.2 - Utenfor",
+          "3.3 - Utvandret",
+          "5.1 - Innenfor",
+          "5.2 - Utenfor",
+          "5.3 - Utvandret"
+        ],
+        "5.5 - Ukjent": [
+          "4.2 - Utenfor",
+          "4.5 - Ukjent",
+          "6.1 - Innenfor",
+          "6.2 - Utenfor"
+        ],
+        "5.3 - Utvandret": [
+          "4.1 - Innenfor",
+          "4.2 - Utenfor",
+          "4.3 - Utvandret",
+          "4.5 - Ukjent",
+          "6.1 - Innenfor",
+          "6.2 - Utenfor",
+          "6.3 - Utvandret"
+        ],
+        "3.3 - Utvandret": [
+          "2.1 - Innenfor",
+          "2.2 - Utenfor",
+          "2.3 - Utvandret",
+          "4.1 - Innenfor",
+          "4.2 - Utenfor",
+          "4.3 - Utvandret",
+          "4.5 - Ukjent"
+        ],
+        "6.1 - Innenfor": [
+          "5.1 - Innenfor",
+          "5.2 - Utenfor",
+          "5.3 - Utvandret",
+          "5.5 - Ukjent"
+        ],
+        "2.3 - Utvandret": [
+          "1.2 - Utenfor",
+          "3.1 - Innenfor",
+          "3.3 - Utvandret"
+        ],
+        "4.2 - Utenfor": [
+          "3.1 - Innenfor",
+          "3.2 - Utenfor",
+          "3.3 - Utvandret",
+          "5.1 - Innenfor",
+          "5.2 - Utenfor",
+          "5.3 - Utvandret",
+          "5.4 - Død",
+          "5.5 - Ukjent"
+        ],
+        "5.1 - Innenfor": [
+          "4.1 - Innenfor",
+          "4.2 - Utenfor",
+          "4.3 - Utvandret",
+          "4.5 - Ukjent",
+          "6.1 - Innenfor",
+          "6.2 - Utenfor",
+          "6.3 - Utvandret",
+          "6.4 - Død"
+        ],
+        "3.1 - Innenfor": [
+          "2.1 - Innenfor",
+          "2.2 - Utenfor",
+          "2.3 - Utvandret",
+          "4.1 - Innenfor",
+          "4.2 - Utenfor",
+          "4.3 - Utvandret",
+          "4.5 - Ukjent"
+        ],
+        "3.2 - Utenfor": [
+          "2.1 - Innenfor",
+          "2.2 - Utenfor",
+          "2.5 - Ukjent",
+          "4.1 - Innenfor",
+          "4.2 - Utenfor",
+          "4.3 - Utvandret",
+          "4.4 - Død",
+          "4.5 - Ukjent"
+        ],
+        "4.3 - Utvandret": [
+          "3.1 - Innenfor",
+          "3.2 - Utenfor",
+          "3.3 - Utvandret",
+          "5.1 - Innenfor",
+          "5.3 - Utvandret"
+        ],
+        "5.4 - Død": ["4.2 - Utenfor", "4.4 - Død", "4.5 - Ukjent", "6.4 - Død"]
+      }
+    }
+  ],
+  "config": {
+    "tick": {"color": "#000000"},
+    "axisY": {"tickSize": 3, "format": "~s"},
+    "bar": {"fill": "#859900", "strokeWidth": 0},
+    "rule": {"color": "#000000"},
+    "background": "#FFFFFF",
+    "legend": {
+      "titleFontSize": 12,
+      "format": "~s",
+      "labelColor": "#000000",
+      "titleFont": "Calibri",
+      "titleColor": "#000000",
+      "labelFont": "Calibri",
+      "labelFontWeight": 400,
+      "labelFontSize": 12,
+      "titleFontWeight": 700
+    },
+    "header": {"labelColor": "#000000"},
+    "title": {"fill": "#FFFFFF", "fontSize": 12, "fontWeight": 700},
+    "axisX": {
+      "labelAngle": 45,
+      "format": "~s",
+      "labelPadding": 5,
+      "tickSize": 3
+    },
+    "style": {
+      "guide-label": {"font": "Calibri", "fontSize": 22, "fontWeight": 400},
+      "guide-title": {
+        "font": "Calibri",
+        "fontSize": 12,
+        "fontWeight": 700,
+        "fill": "#FFFFFF"
+      }
+    },
+    "point": {"color": "#000000"},
+    "axis": {
+      "labelColor": "#000000",
+      "gridColor": "#000000",
+      "titleColor": "#000000"
+    },
+    "view": {"stroke": null},
+    "range": {
+      "ramp": [
+        "#002b36",
+        "#173635",
+        "#274134",
+        "#364d32",
+        "#43592f",
+        "#50652c",
+        "#5d7227",
+        "#6a7f20",
+        "#788c16",
+        "#859900"
+      ],
+      "category": [
+        "#FB7087",
+        "#597B99",
+        "#F0C84A",
+        "#881336",
+        "#3F847A",
+        "#D7DDE3",
+        "#cb4b16",
+        "#b58900"
+      ]
+    },
+    "text": {"fill": "#000000", "fontSize": 12, "fontWeight": 400}
+  }
+};
+    vegaEmbed("#vis", spec, {mode: "vega"}).then(console.log).catch(console.warn);
+  </script>
+</body>
+</html>
