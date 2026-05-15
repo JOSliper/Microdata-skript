@@ -28,7 +28,7 @@ create-dataset persondata
 
 
 //Sett startår 
-let år = 2023
+let år = 2025
 let dato_år = $år ++ "-11-30"
 
 //legger til bosted
