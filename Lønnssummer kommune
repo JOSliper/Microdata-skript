@@ -1,0 +1,54 @@
+Lønnsummer kommune etter arbeidsted
+
+require no.ssb.fdb:53 as fdb 
+create-dataset jobbbdata
+
+//Sett startår 
+let år = 2025
+let dato_år = $år ++ "-11-30"
+
+//legger til arbeidsted
+import fdb/ARBLONN_ARB_ARBKOMM $dato_år as arbeidsted ++ $år
+generate fylke ++ $år = substr(arbeidsted ++ $år,1,2)
+generate kommnr ++ $år = substr(arbeidsted++ $år ,1,4)
+
+keep if fylke ++ $år == '50'
+
+import fdb/ARBLONN_LONN_KONTANT_INNRAPP $dato_år as lønn ++ $år
+summarize lønn ++ $år
+
+tabulate arbeidsted ++ $år , summarize(lønn ++ $år) mean sum freq flatten
+
+
+//...........................................
+Lønnssummer kommune - etter bosted
+
+require no.ssb.fdb:53 as fdb 
+create-dataset persondata
+
+
+//Sett startår 
+let år = 2023
+let dato_år = $år ++ "-11-30"
+
+//legger til bosted
+import fdb/ARBLONN_PERS_KOMMNR $dato_år as bosted ++ $år
+generate fylke ++ $år = substr(bosted ++ $år,1,2)
+generate kommnr ++ $år = substr(bosted++ $år ,1,4)
+
+keep if fylke ++ $år == '50'
+
+tabulate bosted ++ $år
+
+create-dataset lønnsdata
+import fdb/ARBLONN_LONN_KONTANT_INNRAPP $dato_år as lønn ++ $år
+summarize lønn ++ $år
+
+import fdb/ARBEIDSFORHOLD_PERSON as personid
+collapse(sum) lønn ++ $år , by(personid)
+merge lønn ++ $år into persondata
+
+use persondata
+
+summarize lønn ++ $år
+tabulate bosted ++ $år , summarize(lønn ++ $år) mean sum freq flatten
