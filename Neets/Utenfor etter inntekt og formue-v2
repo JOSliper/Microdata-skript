@@ -1,0 +1,242 @@
+require no.ssb.fdb:55 as fdb 
+create-dataset pop
+
+//Sett startår 
+let år = 2022
+let dato_år = $år ++ "-11-16"
+let dato2_år = $år ++ "-11-30"
+let dato3_år = $år ++ "-12-31"
+let dato4_år = $år ++ "-08-01"
+
+//henter Prioritert arbeidsstyrkestatus
+import fdb/ARBSTATUS_PERS_STATUS8 $dato_år  as status ++ $år
+tabulate status ++ $år, missing
+
+generate status4 = substr(status ++ $år,1,4)
+tabulate status4, missing
+
+//legger på geografi 
+import fdb/ARBSTATUS_PERS_KOMM_NR $dato2_år  as bosted ++ $år
+generate fylke = substr(bosted ++ $år,1,2)
+generate kommnr = substr(bosted ++ $år,1,4)
+keep if fylke == '50'| fylke == '16'| fylke  == '17'  | kommnr  == '1567'| kommnr  == '1571'
+
+tabulate status4, missing
+
+//lager nivå2
+generate Nivå_2_ ++ $år = '0'
+replace Nivå_2_  ++ $år = '1 - Sysselsatte' if status4 == '0808' | status4 == '0816' |status4 == '0824' | status4 == '0832' | status4 == '1608'
+replace Nivå_2_ ++ $år = '4 - Registrerte arbeidsledige' if status4 == '2408'
+replace Nivå_2_ ++ $år= '3 - Deltakere på arbeidsmarkedstiltak' if status4 == '3208' |status4 == '3216' | status4 == '3232' | status4 == '4816' | status4 == '3240'
+replace Nivå_2_ ++ $år= '2 - Under ordinær utdanning' if status4 == '4008' 
+replace Nivå_2_ ++ $år = '5 - Mottakere av arbeidsavklarings-penger/uføretrygd' if status4 == '4848' | status4 == '4832' | status4 == '4856' | status4 == '4864' 
+replace Nivå_2_ ++ $år = '6 - Mottakere av AFP/alderspensjon' if status4 == '5616' |status4 == '5632'
+
+//replace Nivå_2_ ++ $år = '7 - Andre' if status4 == '3224' | status4 == '4808'| status4 == '5608' | status4 == '5624' | status4 == '5640' | status4 == '6408' | status4 == '6416' | status4 == '6424' | status4 == '6432'
+//replace Nivå_2_ ++ $år= '8 - Ukjent' if status4 == '7208' 
+
+replace Nivå_2_ ++ $år = '7 - Andre/ukjent' if status4 == '3224' | status4 == '4808'| status4 == '5608' | status4 == '5624' | status4 == '5640' | status4 == '6408' | status4 == '6416' | status4 == '6424' | status4 == '6432' |status4 == '7208' 
+
+tabulate Nivå_2_ ++ $år, missing
+
+generate Nivå_2_tall = substr(Nivå_2_ ++ $år,1,1)
+
+//lager nivå 4/NEETs
+generate Nivå_4_ ++ $år = '0'
+replace Nivå_4_ ++ $år= '1 - I arbeid, under utdanning eller på arbeidsmarkedstiltak' if Nivå_2_tall == '1' | Nivå_2_tall == '2'  | Nivå_2_tall == '3'
+replace Nivå_4_ ++ $år = '2 - Utenfor arbeid, utdanning og arbeidsmarkedstiltak' if Nivå_2_tall == '4' | Nivå_2_tall == '5' | Nivå_2_tall == '6' | Nivå_2_tall == '7'| Nivå_2_tall == '8'
+
+tabulate Nivå_2_ ++ $år Nivå_4_ ++ $år, missing
+
+import fdb/ARBSTATUS_PERS_UTENFOR $dato_år  as ARBSTATUS_PERS_UTENFOR ++ $år
+
+tabulate ARBSTATUS_PERS_UTENFOR ++ $år  Nivå_4_ ++ $år , missing
+
+//.....................................
+
+//legger til alder og kjønn
+//import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+//generate alder = 2023 - int(faarmnd/100)
+
+import fdb/ARBSTATUS_PERS_ALDER $dato_år as alder ++ $år
+
+import fdb/BEFOLKNING_KJOENN as kjønn
+
+keep if alder ++ $år >=20
+keep if alder ++ $år <=60
+
+//lager aldersgrupper 5 årsgrupper
+generate aldersgruppe = '0'
+replace aldersgruppe = '20-24 år' if alder ++ $år >= 20
+replace aldersgruppe = '25-29 år' if alder ++ $år >= 25
+replace aldersgruppe = '30-34 år' if alder ++ $år >= 30
+replace aldersgruppe = '35-39 år' if alder ++ $år >= 35
+replace aldersgruppe = '40-44 år' if alder ++ $år >= 40
+replace aldersgruppe = '45-49 år' if alder ++ $år >= 45
+replace aldersgruppe = '50-54 år' if alder ++ $år >= 50
+replace aldersgruppe = '55-60 år' if alder ++ $år >= 55
+replace aldersgruppe = 'Ukjent alder' if sysmiss(alder ++ $år)
+
+tabulate aldersgruppe Nivå_4_ ++ $år, missing
+tabulate aldersgruppe Nivå_2_ ++ $år, missing
+
+//legger til husholdningsinntekt etter skatt 
+import fdb/INNTEKT_HUSH_IES_EU $dato3_år as INNTEKT_HUSH ++ $år
+summarize INNTEKT_HUSH ++ $år
+
+tabulate Nivå_2_ ++ $år kjønn , summarize(INNTEKT_HUSH ++ $år)
+
+tabulate Nivå_2_ ++ $år aldersgruppe , summarize(INNTEKT_HUSH ++ $år)
+tabulate Nivå_4_ ++ $år aldersgruppe , summarize(INNTEKT_HUSH ++ $år)
+
+tabulate Nivå_2_ ++ $år aldersgruppe , summarize(INNTEKT_HUSH ++ $år) freq mean
+tabulate Nivå_4_ ++ $år aldersgruppe , summarize(INNTEKT_HUSH ++ $år) freq mean
+
+//legger til inntekt etter skatt 
+import fdb/INNTEKT_WIES $dato3_år as INNTEKT_WIES ++ $år
+histogram INNTEKT_WIES ++ $år
+summarize INNTEKT_WIES ++ $år
+
+//setter missing til 0 
+replace INNTEKT_WIES ++ $år = 0 if sysmiss(INNTEKT_WIES ++ $år)
+histogram INNTEKT_WIES ++ $år
+summarize INNTEKT_WIES ++ $år
+
+
+tabulate Nivå_2_ ++ $år aldersgruppe , summarize(INNTEKT_WIES ++ $år)
+tabulate Nivå_2_ ++ $år aldersgruppe , summarize(INNTEKT_WIES ++ $år)
+
+tabulate Nivå_2_ ++ $år aldersgruppe , summarize(INNTEKT_WIES ++ $år) freq mean
+tabulate Nivå_4_ ++ $år aldersgruppe , summarize(INNTEKT_WIES ++ $år) freq mean
+
+generate INNTEKT_WIES_p10_ ++ $år = quantile(INNTEKT_WIES ++ $år, 10)
+
+tabulate INNTEKT_WIES_p10_ ++ $år Nivå_4_ ++ $år , summarize(INNTEKT_WIES ++ $år) freq mean
+
+tabulate bosted ++ $år Nivå_4_ ++ $år , summarize(INNTEKT_WIES ++ $år) 
+tabulate bosted ++ $år Nivå_4_ ++ $år , summarize(INNTEKT_WIES ++ $år) mean freq p50 flatten
+
+//legger til beregnet bruttoformue
+import fdb/INNTEKT_BER_BRFORM $dato3_år as INNTEKT_BER_BRFORM ++ $år
+
+histogram INNTEKT_BER_BRFORM ++ $år
+summarize INNTEKT_BER_BRFORM ++ $år
+
+//setter missing til 0 
+replace INNTEKT_BER_BRFORM ++ $år = 0 if sysmiss(INNTEKT_BER_BRFORM ++ $år)
+histogram INNTEKT_BER_BRFORM ++ $år
+summarize INNTEKT_BER_BRFORM ++ $år
+
+generate INNTEKT_BER_BRFORM_p10_ ++ $år = quantile(INNTEKT_BER_BRFORM ++ $år, 10)
+
+tabulate INNTEKT_BER_BRFORM_p10_ ++ $år INNTEKT_WIES_p10_ ++ $år, missing
+tabulate INNTEKT_BER_BRFORM_p10_ ++ $år INNTEKT_WIES_p10_ ++ $år if Nivå_4_ ++ $år == '2 - Utenfor arbeid, utdanning og arbeidsmarkedstiltak' , missing
+
+//hudsholdning og familieforhold 
+
+//legger til husholdningstype, merk litt ulikt telletidspunkt.
+let år2 = $år + 1
+let dato_år2 = $år2 ++ "-01-01"
+import fdb/BEFOLKNING_REGSTAT_HUSHTYP $dato_år2 as REGSTAT_HUSHTYP ++ $år2
+
+tabulate REGSTAT_HUSHTYP ++ $år2 Nivå_4_ ++ $år, missing
+tabulate REGSTAT_HUSHTYP ++ $år2 Nivå_4_ ++ $år, summarize(INNTEKT_WIES ++ $år)
+tabulate REGSTAT_HUSHTYP ++ $år2 Nivå_4_ ++ $år, summarize(INNTEKT_HUSH ++ $år)
+
+tabulate REGSTAT_HUSHTYP ++ $år2  Nivå_2_ ++ $år, missing
+
+//overføringer og skatt
+//legger til skatt 
+import fdb/SKATT_FASTSATT_SKATT $dato3_år as skatt ++ $år
+histogram skatt ++ $år
+summarize skatt ++ $år
+tabulate  aldersgruppe Nivå_4_ ++ $år, summarize(skatt ++ $år)
+
+//setter missing til 0 
+replace skatt ++ $år = 0 if sysmiss(skatt ++ $år)
+histogram skatt ++ $år
+summarize skatt ++ $år
+tabulate aldersgruppe Nivå_4_ ++ $år, summarize(skatt ++ $år)
+tabulate aldersgruppe Nivå_2_ ++ $år, summarize(skatt ++ $år)
+
+barchart (mean) skatt ++ $år , over(Nivå_2_ ++ $år) 
+boxplot  skatt ++ $år , over(Nivå_2_ ++ $år) horizontal
+
+//legger til overføringer
+import fdb/INNTEKT_OVERFOR $dato3_år as overføring ++ $år
+histogram overføring ++ $år
+summarize overføring ++ $år
+tabulate aldersgruppe Nivå_4_ ++ $år, summarize(overføring ++ $år)
+
+//setter missing til 0 
+replace overføring ++ $år = 0 if sysmiss(overføring ++ $år)
+histogram overføring ++ $år
+summarize overføring ++ $år
+tabulate aldersgruppe Nivå_4_ ++ $år, summarize(overføring ++ $år)
+tabulate aldersgruppe Nivå_2_ ++ $år, summarize(overføring ++ $år)
+
+barchart (mean) overføring ++ $år , over(Nivå_2_ ++ $år) 
+boxplot  overføring  ++ $år, over(Nivå_2_ ++ $år) horizontal
+
+//Lager nettooverføring
+generate nettooverføring ++ $år = (skatt ++ $år) - (overføring ++ $år)
+
+histogram nettooverføring ++ $år
+summarize nettooverføring ++ $år
+tabulate aldersgruppe Nivå_4_ ++ $år, summarize(nettooverføring ++ $år)
+tabulate aldersgruppe Nivå_2_ ++ $år, summarize(nettooverføring ++ $år)
+
+
+//legger til Samlet inntekt
+import fdb/INNTEKT_WSAMINNT $dato3_år  as Samlet_inntekt  ++ $år
+histogram Samlet_inntekt ++ $år
+summarize Samlet_inntekt ++ $år
+tabulate aldersgruppe Nivå_4_ ++ $år, summarize(Samlet_inntekt ++ $år)
+
+//setter missing til 0 
+replace Samlet_inntekt ++ $år= 0 if sysmiss(Samlet_inntekt ++ $år)
+histogram Samlet_inntekt ++ $år
+summarize Samlet_inntekt ++ $år
+tabulate aldersgruppe Nivå_4_ ++ $år, summarize(Samlet_inntekt ++ $år)
+tabulate aldersgruppe Nivå_2_ ++ $år, summarize(Samlet_inntekt ++ $år)
+
+
+// tabell på de ulike økonomiske variablene. 
+tabulate  Nivå_2_ ++ $år, summarize(INNTEKT_HUSH ++ $år, INNTEKT_WIES ++ $år, Samlet_inntekt ++ $år, INNTEKT_BER_BRFORM ++ $år, overføring ++ $år, skatt ++ $år, nettooverføring ++ $år) flatten
+
+
+
+//legger til utdanningsnivå
+import fdb/NUDB_BU  $dato4_år  as utd
+generate utd1 = substr(utd,1,1)
+//lager kategorier (2 varinater)
+generate utdniv = '9'
+replace utdniv = '1' if utd1 == '1' | utd1 == '2'
+replace utdniv = '2' if utd1 == '3' | utd1 == '4' | utd1 == '5'
+replace utdniv = '3' if utd1 == '6'
+replace utdniv = '4' if utd1 == '7' | utd1 == '8' 
+define-labels utdnivtxt '1' 'Grunnskolenivå' '2'  'Videregående grunnopplæring' '3' 'Universitets og høgskolenivå kort' '4' 'Universitets og høgskolenivå lang' '9' 'Uoppgitt el ingen utdanning'
+assign-labels utdniv utdnivtxt
+
+generate utdniv ++ $år = '1'
+replace utdniv ++ $år = '2' if utd1 == '1' | utd1 == '2'
+replace utdniv ++ $år = '3' if utd1 == '3' | utd1 == '4' 
+replace utdniv ++ $år = '4' if utd1 == '5' 
+replace utdniv ++ $år = '5' if utd1 == '6' 
+replace utdniv ++ $år = '6' if utd1 == '7' 
+replace utdniv ++ $år = '7' if utd1 == '8' 
+define-labels utdniv1txt '1' 'Uoppgitt el ingen utdanning' '2' 'Grunnskolenivå' '3'  'Videregående utdanning' '4' 'Fagskole  utdanning'  '5'  'Universitets- og høgskole lavere nivå' '6'  'Universitets- og høgskole høyere nivå' '7'  'Phd'
+assign-labels utdniv ++ $år utdniv1txt
+
+tabulate utdniv ++ $år Nivå_4_++ $år, summarize(INNTEKT_WIES ++ $år) mean freq
+
+// Legger til Innvandringskategori
+import fdb/BEFOLKNING_INVKAT as kat
+generate Innvandringskategori = '3'
+replace Innvandringskategori = '1' if kat == 'B'
+replace Innvandringskategori = '2' if kat == 'C'
+//replace Innvandringskategori = 'Ukjent ' if sysmiss(kat)
+define-labels Innvandringskategoritxt '1' 'Innvandrere' '2' 'Norskfødt med innvandrerforeldre' '3' 'Øvrig befolkning'
+assign-labels Innvandringskategori Innvandringskategoritxt
+
+tabulate Innvandringskategori Nivå_4_ ++ $år, summarize(INNTEKT_WIES ++ $år) mean freq 
