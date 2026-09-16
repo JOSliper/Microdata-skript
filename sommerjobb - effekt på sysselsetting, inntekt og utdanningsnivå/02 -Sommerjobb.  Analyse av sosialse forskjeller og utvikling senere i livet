@@ -1,0 +1,139 @@
+require no.ssb.fdb:56 as fdb
+//...................................................................
+
+//Sett startår 
+let år = 2016
+let år2 =2026
+let år3 =2025
+let år_alder = $år -1
+let dato_år = $år ++ "-01-01"
+let dato_år2 = $år2 ++ "-01-01"
+let dato_år3 = $år3 ++ "-11-16"
+
+//Oppretter persondatasett for bosatte med variabel kjønn
+create-dataset persondata
+import fdb/BEFOLKNING_KOMMNR_FORMELL $dato_år as bosted
+import fdb/BEFOLKNING_KJOENN as kjønn
+generate fylke = substr(bosted,1,2)
+generate kommnr = substr(bosted,1,4)
+keep if fylke == '50'| fylke == '16'| fylke  == '17' | kommnr  == '1567'| kommnr  == '1571' 
+
+//henter alder - bruker år -1 for å sikre at aldersfordelt befolkning samsvarere med tallene i statistikkbanken 
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+generate alder = $år_alder - int(faarmnd/100)
+keep if alder == 16
+//keep if alder >= 15
+//keep if alder <= 18
+
+let januar = $år ++ "-01-16"
+let februar = $år ++ "-02-16"
+let mars = $år ++ "-03-16"
+let april = $år ++ "-04-16"
+let mai = $år ++ "-05-16"
+let juni = $år ++ "-06-16"
+let juli = $år ++ "-07-16"
+let august = $år ++ "-08-16"
+let september = $år ++ "-09-16"
+let oktober = $år ++ "-10-16"
+let november = $år ++ "-11-16"
+let desember = $år ++ "-12-16"
+
+//bruker kun data for en måned - i dette tifelle august, reff analyse i https://github.com/JOSliper/Microdata-skript/blob/main/sommerjobb%20-%20effekt%20p%C3%A5%20sysselsetting%2C%20inntekt%20og%20utdanningsniv%C3%A5/01%20-%20jobb%20etter%20m%C3%A5ned%20og%20alder
+import fdb/ARBLONN_PERS_KJOENN $august as ARB_kjønn
+
+//lager dummyvariabel  På i arbeid eller ikke i arbeid
+generate sommerjobb ++ $år = 'Ja'
+replace sommerjobb ++ $år  = 'Nei' if sysmiss(ARB_kjønn)
+
+tabulate sommerjobb ++ $år , missing
+
+tabulate sommerjobb ++ $år kjønn, missing chi2 freq rowpct colpct
+
+import fdb/ARBLONN_PERS_SUM_ARBEIDSTID $august as tid
+summarize tid
+
+//henter og tester befolkningsstatus  
+import fdb/BEFOLKNING_STATUSKODE $dato_år2 as status ++ $år2
+
+tabulate sommerjobb ++ $år  status ++ $år2, missing chi2
+
+//beholder kun de som fortsatt er bosatt i norge
+keep if status ++ $år2 == '1'
+
+
+//arbeidstatus
+import fdb/REGSYS_ARB_ARBMARK_STATUS $dato_år3 as arbstat ++ $år3
+tabulate arbstat ++ $år3 sommerjobb ++ $år, missing chi2
+
+
+//lagger variabel for sysselsatt
+generate sysselsatt ++ $år3 = 'Nei'
+replace sysselsatt ++ $år3 = 'ja'if arbstat ++ $år3 == '1' | arbstat ++ $år3 == '2'
+
+tabulate arbstat ++ $år3  sysselsatt ++ $år3, missing
+
+tabulate sysselsatt ++ $år3 sommerjobb ++ $år, missing colpct freq chi2
+
+
+//merkhardkodet dato
+import fdb/INNTEKT_WLONN 2024-12-31 as lønn
+tabulate arbstat ++ $år3 sommerjobb ++ $år, summarize(lønn) missing chi2 mean p50 p25 p75
+boxplot lønn if arbstat ++ $år3 == "1",over(sommerjobb ++ $år) horizontal
+histogram lønn if arbstat ++ $år3 == "1",by(sommerjobb ++ $år) percent
+
+//sosiøkonomisk status
+import fdb/NUDB_SOSBAK as sosialbakgrunn
+tabulate sosialbakgrunn sommerjobb ++ $år, missing chi2
+tabulate arbstat ++ $år3 sosialbakgrunn sommerjobb ++ $år , missing chi2
+tabulate sysselsatt ++ $år3 sosialbakgrunn sommerjobb ++ $år , missing chi2
+
+
+//grunnskolepoeng
+import fdb/NUDB_KURS_GRPOENG as Gpoeng
+summarize Gpoeng
+histogram Gpoeng, by(sommerjobb ++ $år) percent
+
+tabulate sysselsatt ++ $år3  sommerjobb ++ $år , summarize(Gpoeng) chi2
+tabulate sosialbakgrunn  sommerjobb ++ $år , summarize(Gpoeng) chi2
+
+tabulate sysselsatt ++ $år3 sosialbakgrunn sommerjobb ++ $år , summarize(Gpoeng) chi2
+
+
+
+//henter data på utdanning, merk nyeste data 2024 fdb56
+let år4 =2024
+let data_utd = $år4 ++ "-08-01"
+import fdb/NUDB_BU $data_utd as utd
+
+generate utd1 = substr(utd,1,1)
+//lager kategorier
+generate utdniv = '9'
+replace utdniv = '1' if utd1 == '1' | utd1 == '2'
+replace utdniv = '2' if utd1 == '3' | utd1 == '4' | utd1 == '5'
+replace utdniv = '3' if utd1 == '6'
+replace utdniv = '4' if utd1 == '7' | utd1 == '8' 
+define-labels utdnivtxt '1' 'Grunnskolenivå' '2'  'Videregående grunnopplæring' '3' 'Universitets og høgskolenivå kort' '4' 'Universitets og høgskolenivå lang' '9' 'Uoppgitt el ingen utdanning'
+assign-labels utdniv utdnivtxt
+
+tabulate sommerjobb ++ $år  utdniv, missing chi2
+tabulate utdniv sommerjobb ++ $år
+
+// Legger til Innvandringskategori
+import fdb/BEFOLKNING_INVKAT as kat
+generate Innvandringskategori = '3'
+replace Innvandringskategori = '1' if kat == 'B'
+replace Innvandringskategori = '2' if kat == 'C'
+replace Innvandringskategori = 'Ukjent ' if sysmiss(kat)
+define-labels Innvandringskategoritxt '1' 'Innvandrere' '2' 'Norskfødt med innvandrerforeldre' '3' 'Øvrig befolkning'
+assign-labels Innvandringskategori Innvandringskategoritxt
+
+tabulate Innvandringskategori sommerjobb ++ $år, missing rowpct freq chi2
+tabulate Innvandringskategori sommerjobb ++ $år
+
+//legger til husholdningsinntekt 
+import fdb/INNTEKT_HUSH_IES_EU  $dato_år as inntekt ++ $år
+
+generate husholdningsinntekt ++ $år = quantile(inntekt ++ $år, 10)
+
+tabulate husholdningsinntekt ++ $år sommerjobb ++ $år, rowpct freq chi2
+tabulate husholdningsinntekt ++ $år sommerjobb ++ $år,  chi2
