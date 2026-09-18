@@ -1,0 +1,59 @@
+require no.ssb.fdb:55 as fdb 
+create-dataset persondata
+
+//Sett startår 
+let år = 2023
+let dato_år = $år ++ "-01-01"
+let år_minus1 =  $år -1
+
+//legger på geografi 
+import fdb/BEFOLKNING_KOMMNR_FORMELL $dato_år as bosted ++ $år
+tabulate bosted ++ $år
+generate fylke = substr(bosted ++ $år,1,2)
+generate kommnr = substr(bosted ++ $år,1,4)
+keep if fylke == '50'| fylke == '16'| fylke  == '17'  | kommnr  == '1567'| kommnr  == '1571'
+
+tabulate bosted ++ $år
+
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+// bruker år -1 å sikre at aldersfordelt befolkning samsvarere med tallene i statistikkbanken 
+
+tabulate faarmnd
+
+generate alder = $år_minus1- int(faarmnd/100)
+
+//lager aldersgrupper
+generate aldersgruppe = '0'
+replace aldersgruppe = '0-19 år' if alder >= 0
+replace aldersgruppe = '20-29 år' if alder >= 20
+replace aldersgruppe = '30-39 år' if alder >= 30
+replace aldersgruppe = '40-49 år' if alder >= 40
+replace aldersgruppe = '50-59 år' if alder >= 50
+replace aldersgruppe = '60-66 år' if alder >= 60
+replace aldersgruppe = '67-74 år ' if alder >= 67
+replace aldersgruppe = '75 år og eldre' if alder >= 75
+replace aldersgruppe = 'Ukjent alder' if sysmiss(faarmnd)
+
+import fdb/BOFORHOLD_P_AREAL $dato_år as pareal ++ $år
+
+tabulate bosted ++ $år aldersgruppe, summarize(pareal ++ $år) freq mean p50 flatten p25 p75
+
+//legger til antall personer i husholdning 
+import fdb/BEFOLKNING_PERS_I_HUSHNR $dato_år as antallpersoner
+
+tabulate antallpersoner  aldersgruppe, missing
+
+//lager husholdningsgrupper
+//lager aldersgrupper
+generate Størrelse = 'Ukjent'
+replace Størrelse = '1' if antallpersoner == 1
+replace Størrelse = '2' if antallpersoner == 2
+replace Størrelse = '3' if antallpersoner == 3
+replace Størrelse = '4' if antallpersoner == 4
+replace Størrelse = '5' if antallpersoner == 5
+replace Størrelse = '6+' if antallpersoner >= 6
+
+
+tabulate antallpersoner  Størrelse, missing
+
+tabulate bosted ++ $år aldersgruppe Størrelse, summarize(pareal ++ $år) freq mean p50 flatten p25 p75
