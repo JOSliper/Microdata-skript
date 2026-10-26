@@ -1,0 +1,75 @@
+require no.ssb.fdb:57 as fdb 
+create-dataset persondata
+
+//Sett startår 
+let år = 2026
+let dato_år = $år ++ "-01-01"
+
+//bruker befolkningen per 1.1. i valgte 
+import fdb/BEFOLKNING_KOMMNR_FORMELL $dato_år as bosted 
+generate fylke = substr(bosted,1,2)
+generate kommnr = substr(bosted,1,4)
+import fdb/BEFOLKNING_KJOENN as kjønn
+
+//keep if fylke == '50'
+keep if kommnr  == '5001'
+
+//henter alder  (merk år minus 1 for å få sammsvar med ssb statistikkbanken) 
+let år_minus1 = $år -1
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+generate alder = $år_minus1 - int(faarmnd/100)
+
+keep if alder >= 15
+keep if alder <= 21
+
+tabulate alder, missing
+
+
+//henter bydel
+import fdb/BEFOLKNING_BYDEL $dato_år as bydel 
+
+tabulate alder bydel, missing
+
+// lagger jobbdatasett for å hente opplysinger fra aa-melding
+create-dataset jobbdata 
+let dato2_år = $år ++ "-01-16"
+import fdb/ARBLONN_LONN_KONTANT_IMP $dato2_år as Lønn
+import fdb/ARBEIDSFORHOLD_PERSON as personid
+
+//summerer lønn og kobler tilbake til persondata
+collapse (sum)Lønn , by(personid)
+merge Lønn  into persondata
+
+use persondata
+
+summarize Lønn
+histogram Lønn, freq
+boxplot Lønn , over(bydel)
+boxplot Lønn , over(alder)
+
+tabulate alder bydel, summarize(Lønn) freq mean p50 flatten
+tabulate alder bydel, summarize(Lønn)
+
+
+//lager grupper utifra månedslønn
+generate Lønnstaker = '0 - ikke lønnstaker'
+replace Lønnstaker =  '1 - under 5 000 kr ' if Lønn >= 1
+replace Lønnstaker =  '2 - 5 000 - 9 999 kr ' if Lønn >= 5000
+replace Lønnstaker =  '3 - 10 000 - 19 999 kr ' if Lønn >= 10000
+replace Lønnstaker =  '4 - 20 000 - 29 999 kr ' if Lønn >= 20000
+replace Lønnstaker =  '5 - 30 000 kr eller mer' if Lønn >= 30000
+
+tabulate Lønnstaker bydel, missing
+tabulate Lønnstaker bydel, summarize(Lønn)
+
+
+// Legger til Innvandringskategori
+import fdb/BEFOLKNING_INVKAT as kat
+generate Innvandringskategori = '3'
+replace Innvandringskategori = '1' if kat == 'B'
+replace Innvandringskategori = '2' if kat == 'C'
+//replace Innvandringskategori = 'Ukjent ' if sysmiss(kat)
+define-labels Innvandringskategoritxt '1' 'Innvandrere' '2' 'Norskfødt med innvandrerforeldre' '3' 'Øvrig befolkning'
+assign-labels Innvandringskategori Innvandringskategoritxt
+
+tabulate Lønnstaker bydel if Innvandringskategori == '1', missing 
