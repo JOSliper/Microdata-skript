@@ -1,0 +1,97 @@
+require no.ssb.fdb:58 as fdb 
+create-dataset pop
+
+//arbeidstatus
+import fdb/REGSYS_ARB_ARBMARK_STATUS 2025-11-16 as arbstat
+
+//bruker befolkningen per 1.1.
+import fdb/BEFOLKNING_KOMMNR_FORMELL 2026-01-01 as bosted
+generate fylke = substr(bosted,1,2)
+generate kommnr = substr(bosted,1,4)
+
+keep if fylke == '50'
+
+
+//landbakgrunn
+import fdb/BEFOLKNING_LANDBAK3GEN  as land
+
+//henter alder - bruker år -1 for å sikre at aldersfordelt befolkning samsvarere med tallene i statistikkbanken 
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+generate alder = 2025 - int(faarmnd/100)
+
+keep if alder >=20
+keep if alder <=60
+
+//henter arbeidsstedskommune 
+import fdb/REGSYS_ARB_ARBKOMM 2025-11-16 as arbeidsted
+
+
+tabulate land arbstat,missing
+
+//henter første oppholdsdato
+import fdb/BEFOLKNING_FORSTDATO  as FORSTDATO
+generate FORSTår =  substr(FORSTDATO,1,4)
+
+tabulate FORSTår, missing
+
+destring FORSTår
+generate botid = 2026 - FORSTår
+
+tabulate botid, missing 
+
+tabulate land arbstat if botid >=2 ,missing
+
+//lager sysselsatt ikke sysselsatt
+generate sysselsatt = 'Nei'
+replace sysselsatt = 'Ja' if arbstat == '1' | arbstat == '2'
+
+//test
+tabulate sysselsatt arbstat,missing
+
+tabulate land sysselsatt ,missing
+tabulate land sysselsatt if botid >=2 ,missing
+
+
+generate botidgruppe = '1 år eller mindre'
+replace botidgruppe = '2 år' if botid ==2
+replace botidgruppe = '3 år' if botid ==3
+replace botidgruppe = '4-9 år' if botid >= 4
+replace botidgruppe = '10 år eller mer' if botid >= 10
+
+tabulate botid  botidgruppe, missing
+
+//tar ut kun ukrainere
+keep if land =='148' 
+//keep if land =='148' | land =='000' 
+
+tabulate botid 
+
+tabulate botidgruppe sysselsatt, missing
+
+//henter yrke per 4. kvartal 202
+import fdb/REGSYS_ARB_YRKE_STYRK08 2025-11-16 as yrke
+
+
+// ta med norge (linje 65) for for å få stort nok utvalg 
+tabulate yrke land,missing
+
+
+//henter arbeidstid
+import fdb/REGSYS_ARB_ARBEIDSTID 2025-11-16 as atid
+summarize atid  
+histogram atid
+
+
+tabulate botidgruppe sysselsatt, summarize(atid)
+
+//henter lønn - merk heltidsekvivalent lønn - koble med max og ikke sum for å sikre at det ikke blir for høyer verdier på persopner som har flere jobber
+create-dataset lønnsdata
+import fdb/ARBLONN_LONN_EKV_IALT 2025-11-30 as lønn 
+import fdb/ARBEIDSFORHOLD_PERSON as personid2
+collapse(max) lønn, by(personid2)
+merge lønn into pop
+
+use pop
+
+// ta med norge (linje 65) for for å få stort nok utvalg 
+tabulate yrke  land , summarize(lønn) 
