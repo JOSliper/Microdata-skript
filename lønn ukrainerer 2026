@@ -1,0 +1,54 @@
+require no.ssb.fdb:58 as fdb 
+create-dataset persondata
+
+//Sett startår 
+let år = 2026
+let dato_år = $år ++ "-07-31"
+
+//bruker befolkningen per 1.1. i valgte 
+import fdb/ARBLONN_PERS_KOMMNR $dato_år as bosted 
+generate fylke = substr(bosted,1,2)
+generate kommnr = substr(bosted,1,4)
+import fdb/BEFOLKNING_KJOENN as kjønn
+
+keep if fylke == '50'
+
+tabulate  bosted
+
+import fdb/BEFOLKNING_LANDBAK3GEN as land
+
+tabulate  land
+
+// lagger jobbdatasett for å hente opplysinger fra aa-melding
+create-dataset jobbdata 
+let dato2_år = $år ++ "-07-16"
+import fdb/ARBLONN_LONN_KONTANT_IMP $dato2_år as Lønn
+import fdb/ARBEIDSFORHOLD_PERSON as personid
+
+//summerer lønn og kobler tilbake til persondata
+collapse (sum)Lønn , by(personid)
+merge Lønn  into persondata
+
+use persondata
+
+tabulate land, summarize(Lønn) mean p50
+
+generate lønn12 = Lønn*12
+
+summarize lønn12 if land == '148'
+
+histogram lønn12 if land == '148', freq
+
+generate lønnsgruppe = '1. 100 000 eller mindre'
+replace lønnsgruppe  = '2. 100 001 - 200 000' if lønn12 >100000
+replace lønnsgruppe  = '3. 200 001 - 300 000' if lønn12 >200000
+replace lønnsgruppe  = '4. 300 001 - 400 000' if lønn12 >300000
+replace lønnsgruppe  = '5. 400 001 - 500 000' if lønn12 >400000
+replace lønnsgruppe  = '6. 500 001 - 600 000' if lønn12 >500000
+replace lønnsgruppe  = '7. 600 001 - 700 000' if lønn12 >600000
+replace lønnsgruppe  = '7. 700 001 eller mer' if lønn12 >700000
+
+tabulate lønnsgruppe if land == '148'
+tabulate lønnsgruppe if land == '148', summarize(lønn12) mean p50
+
+tabulate lønnsgruppe 
