@@ -1,0 +1,41 @@
+require no.ssb.fdb:54 as fdb
+create-dataset data
+
+//Sett startår 
+let år = 2026
+let dato_år = $år ++ "-01-01"
+let år2 = $år - 1
+
+import fdb/BEFOLKNING_KOMMNR_FORMELL $dato_år as bosted ++ $år
+
+import fdb/NUDB_KOMM_16 as aar16
+generate aar16kom = substr(aar16,1,4)
+generate aar16f = substr(aar16,1,2)
+
+tabulate aar16
+
+generate Gruppering = "Resten av landet"
+//replace Gruppering = "valgt område" if aar16kom == '5006' | aar16kom  == '1724' | aar16kom  == '1702' |aar16kom  == '5039'
+replace Gruppering = "valgt område" if aar16kom == '5037' | aar16kom  == '1719' 
+
+
+tabulate aar16 Gruppering, missing
+
+import fdb/BEFOLKNING_FOEDSELS_AAR_MND as faarmnd
+// år -1 for å sikre at aldersfordelt befolkning samsvarere med  tallene i statistikkbanken 
+generate alder = $år2 - int(faarmnd/100)
+
+keep if alder >= 17 
+keep if alder <= 67
+
+tabulate aar16 , missing
+
+generate fylke = substr(bosted ++ $år,1,2)
+generate kom = substr(bosted ++ $år,1,4)
+//keep if fylke == '50'
+//keep if kom == '5006'
+
+//bosted i valgte år for pesoner fra valgte kommune/kommuner
+tabulate bosted ++ $år Gruppering, missing
+
+generate fylke2 = substr(aar16,1,2)
