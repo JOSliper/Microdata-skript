@@ -37,5 +37,3 @@ generate kom = substr(bosted ++ $år,1,4)
 
 //bosted i valgte år for pesoner fra valgte kommune/kommuner
 tabulate bosted ++ $år Gruppering, missing
-
-generate fylke2 = substr(aar16,1,2)
